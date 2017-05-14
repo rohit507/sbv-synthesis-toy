@@ -15,10 +15,6 @@ import API
 --         an SMT problem.
 --
 data Constraint a where
-  -- We don't use this value in this stage of the process. 
-  Unused :: Constraint a
-  -- We know nothing about this value
-  Unknown :: Constraint a
   -- We know what the value is 
   Is      :: (SymWord a) => a -> Constraint a
   -- The value is one of these
@@ -29,17 +25,22 @@ data Constraint a where
   -- (minmum then maximum. To avoid the haskell-src-exts parse error. :/)
   Between :: (Ord a, SymWord a, OrdSymbolic (SBV a)) => a -> a -> Constraint a
   -- The flags that happen to be specified for this tool. 
-  SetFlags :: (Enum a, Bounded a) => [(a,Bool)] -> Constraint FlagSet
+  SetFlags :: (Enum a, Bounded a, Show a) => [(a,Bool)] -> Constraint FlagSet
+
+deriving instance (Show a) => Show (Constraint a)
 
 -- | Multiple constraints that must all be fulfilled. 
-newtype Constraints f a = Constraints {getConstraints :: [f (Constraint a)]}
+data Constraints a where
+  -- We don't use this value in this stage of the process. 
+  Unused :: Constraints f a
+  -- The set of constraints over this value that must all apply
+  Constraints :: (SymWord a) => [Constraint a] -> Constraints a
 
-instance Newtype (Constraints f a) [f (Constraint a)] where
-  pack = Constraints
-  unpack = getConstraints
+deriving instance (Show (Constraint a)) => Show (Constraints a)
 
 -- | Used to keep track of the various names we assign to things
 newtype Name a = Name {getName :: String}
+  deriving (Show, Read)
 
 instance Newtype (Name a) String where
   pack = Name
@@ -47,6 +48,7 @@ instance Newtype (Name a) String where
 
 -- | Type with both a name and an associated value of some sort.
 data Named f a = Named {getName :: String, getValue :: f a}
+  deriving (Show, Read)
 
 -- | Takes a named item, strips the actual value, and returns just the name.
 toName :: Named f a -> Name a
@@ -54,6 +56,22 @@ toName Named{ getName} = Name getName
 
 -- | Type that we use to represent unique IDs used in all sorts of places.
 type UID = Integer
+
+-- | This whole thing is meant to allow us to easily capture all the
+--   states used for each item in our actual design. 
+--
+--   PortData (Constraints (String,)) / Port (Constraints (String,)) / ElemData (Constraints (String,)) = 
+--      Basic sets of constraints over the values in each type of object, 
+--      along with the names we'll use for those constraints. 
+--
+--   PortData (Named SBV) / Port (Named SBV) / ElemData (Named SBV) =
+--      The names we use to extract information and the internal SBV Variables 
+--
+--   PortData Name / Port Name / ElemData Name =
+--      Just the names, for when we need to extract our output
+--
+--   PortData Identity / Port Identity / ElemData Identity = 
+--      Just the final assigned values for everything, our output
 
 -- | Data specific to the various kinds of ports that we end up using.
 data PortData f
@@ -65,7 +83,9 @@ data PortData f
       -- specific to each API type. 
       getApiFlags  :: f FlagSet,
       -- The UID of the thing the API is connecting to.
-      getApiUID    :: f UID
+      getApiUID    :: f UID,
+      -- The UID of the host processor that the library is running on
+      getHostUID   :: f UID
     }
   | DigitalIO {
       getDirection :: f Direction,
@@ -101,6 +121,7 @@ deriving instance (Read (f Direction), Read (f Api), Read (f FlagSet), Read (f F
 
 -- Data that is neccesary for every port 
 data Port f = Port {
+    getName :: String,
     -- What is the port's UID? 
     getUID  :: f UID,
     -- Is the port being used in the design? 
@@ -117,3 +138,21 @@ data Port f = Port {
 -- that would work without it. 
 deriving instance (Show (PortData f), Show (f Bool), Show (f UID)) => Show (Port f)
 deriving instance (Read (PortData f), Read (f Bool), Read (f UID)) => Read (Port f)
+
+-- | This can be either a block or a link, depending on where in the design
+--   it's being used. 
+data ElemData f = ElemData {
+    -- The Base Name of this element
+    getName :: String,
+    -- The UID of this block or link
+    getUID :: f UID,
+    -- Whether the block or link is part of the output design
+    getUsed :: f Bool,
+    -- The element's ports
+    getPorts :: [Port f]
+  }
+
+-- This needs undecidable instances, and I'm too lazy to write the version
+-- that would work without it. 
+deriving instance (Show (Port f), Show (f Bool), Show (f UID)) => Show (ElemData f)
+deriving instance (Read (Port f), Read (f Bool), Read (f UID)) => Read (ElemData f)
