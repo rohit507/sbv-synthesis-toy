@@ -1,0 +1,22 @@
+name:                synthesis-toy
+version:             0.1.0.0
+synopsis:            A toy version of synthesis to illustrate both the use of
+                     unsatcores and incrementality in SBV.
+-- description:
+homepage:            https://github.com/githubuser/synthesis-toy#readme
+license:             BSD3
+author:              Rohit Ramesh
+maintainer:          Rohit507@gmail.com
+copyright:           2017 Rohit Ramesh
+category:            Other
+extra-source-files:
+- README.md
+
+dependencies:
+  - base >= 4.7 && < 5
+  - sbv
+
+executables:
+  synthesis-toy:
+    source-dirs:      src
+    main:             Main.hs
