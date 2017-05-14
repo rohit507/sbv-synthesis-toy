@@ -2,7 +2,7 @@ name:                synthesis-toy
 version:             0.1.0.0
 synopsis:            A toy version of synthesis to illustrate both the use of
                      unsatcores and incrementality in SBV.
--- description:
+# description:
 github:              rohit507/sbv-synthesis-toy
 license:             BSD3
 author:              Rohit Ramesh
@@ -10,13 +10,35 @@ maintainer:          Rohit507@gmail.com
 copyright:           2017 Rohit Ramesh
 category:            Other
 extra-source-files:
-- README.md
+  - README.md
+
+default-extensions:
+  - GADTs
+  - FlexibleContexts
+  - FlexibleInstances
+  - MultiParamTypeClasses
+  - DeriveDataTypeable
+  - DeriveAnyClass
+  - DuplicateRecordFields
+  - RecordWildCards
+  - NamedFieldPuns
+  - TypeApplications
+  - ApplicativeDo
+  - ViewPatterns
+  - StandaloneDeriving
 
 dependencies:
   - base >= 4.7 && < 5
   - sbv
+  - mtl
+  - containers
+  - newtype
+  - syb
 
 executables:
   synthesis-toy:
     source-dirs:      src
     main:             Main.hs
+    other-modules:
+      - Types
+      - API
