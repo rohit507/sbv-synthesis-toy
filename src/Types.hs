@@ -3,6 +3,11 @@
 module Types where
 
 import Data.SBV
+
+import Data.Map (Map)
+import qualified Data.Map as Map
+
+import Control.Monad.State
 import Data.Generics
 import Control.Newtype
 
@@ -32,7 +37,7 @@ deriving instance (Show a) => Show (Constraint a)
 -- | Multiple constraints that must all be fulfilled. 
 data Constraints a where
   -- We don't use this value in this stage of the process. 
-  Unused :: Constraints f a
+  Unused :: Constraints a
   -- The set of constraints over this value that must all apply
   Constraints :: (SymWord a) => [Constraint a] -> Constraints a
 
@@ -56,21 +61,28 @@ toName Named{ getName} = Name getName
 
 -- | Type that we use to represent unique IDs used in all sorts of places.
 type UID = Integer
+-- These are just to help disambiguate the types a bit since we use UIDs for 
+-- a variety of different things. 
+type PortUID      = UID
+type LinkUID      = UID
+type BlockUID     = UID
+type LinkPortUID  = UID
+type BlockPortUID = UID
 
 -- | This whole thing is meant to allow us to easily capture all the
 --   states used for each item in our actual design. 
 --
---   PortData (Constraints (String,)) / Port (Constraints (String,)) / ElemData (Constraints (String,)) = 
+--   PortData (Constraints (String,)) / Port (Constraints (String,)) / Elem (Constraints (String,)) = 
 --      Basic sets of constraints over the values in each type of object, 
 --      along with the names we'll use for those constraints. 
 --
---   PortData (Named SBV) / Port (Named SBV) / ElemData (Named SBV) =
+--   PortData (Named SBV) / Port (Named SBV) / Elem (Named SBV) =
 --      The names we use to extract information and the internal SBV Variables 
 --
---   PortData Name / Port Name / ElemData Name =
+--   PortData Name / Port Name / Elem Name =
 --      Just the names, for when we need to extract our output
 --
---   PortData Identity / Port Identity / ElemData Identity = 
+--   PortData Identity / Port Identity / Elem Identity = 
 --      Just the final assigned values for everything, our output
 
 -- | Data specific to the various kinds of ports that we end up using.
@@ -83,9 +95,9 @@ data PortData f
       -- specific to each API type. 
       getApiFlags  :: f FlagSet,
       -- The UID of the thing the API is connecting to.
-      getApiUID    :: f UID,
+      getApiUID    :: f BlockUID,
       -- The UID of the host processor that the library is running on
-      getHostUID   :: f UID
+      getHostUID   :: f BlockUID
     }
   | DigitalIO {
       getDirection :: f Direction,
@@ -102,7 +114,7 @@ data PortData f
       -- The flags of the thing connected
       getApiFlags :: f FlagSet,
       -- The UID of the thing connected
-      getApiUID :: f UID
+      getApiUID :: f BlockUID
     }
   | Power {
       getDirection :: f Direction,
@@ -123,13 +135,13 @@ deriving instance (Read (f Direction), Read (f Api), Read (f FlagSet), Read (f F
 data Port f = Port {
     getName :: String,
     -- What is the port's UID? 
-    getUID  :: f UID,
+    getUID  :: f PortUID,
     -- Is the port being used in the design? 
     getUsed :: f Bool,
     -- Is the port connected to something? 
     getConnected :: f Bool,
     -- What is the port connected to? 
-    getConnectedUID :: f UID,
+    getConnectedUID :: f PortUID,
     -- What other information do we have about the port? 
     getData :: PortData f
   }
@@ -141,7 +153,7 @@ deriving instance (Read (PortData f), Read (f Bool), Read (f UID)) => Read (Port
 
 -- | This can be either a block or a link, depending on where in the design
 --   it's being used. 
-data ElemData f = ElemData {
+data Elem f = Elem {
     -- The Base Name of this element
     getName :: String,
     -- The UID of this block or link
@@ -149,10 +161,25 @@ data ElemData f = ElemData {
     -- Whether the block or link is part of the output design
     getUsed :: f Bool,
     -- The element's ports
-    getPorts :: [Port f]
+    getPorts :: Map String (Port f)
   }
 
 -- This needs undecidable instances, and I'm too lazy to write the version
 -- that would work without it. 
-deriving instance (Show (Port f), Show (f Bool), Show (f UID)) => Show (ElemData f)
-deriving instance (Read (Port f), Read (f Bool), Read (f UID)) => Read (ElemData f)
+deriving instance (Show (Port f), Show (f Bool), Show (f UID)) => Show (Elem f)
+deriving instance (Read (Port f), Read (f Bool), Read (f UID)) => Read (Elem f)
+
+-- | Internal state for the monad we use to assemble a CSP
+data SynthState = SynthState {
+    getUIDCounter  :: UID
+  , getLinks       :: Map LinkUID  (Elem (Named SBV))
+  , getBlocks      :: Map BlockUID (Elem (Named SBV))
+  , getLinkPorts   :: Map LinkPortUID  (Port (Named SBV))
+  , getBlockPorts  :: Map BlockPortUID (Port (Named SBV))
+  , getConnections :: Map BlockPortUID (Map LinkPortUID (Named SBV Bool))
+  }
+
+deriving instance Show SynthState
+
+-- | The actual CSP assembly monad
+type Synth a = StateT SynthState Symbolic

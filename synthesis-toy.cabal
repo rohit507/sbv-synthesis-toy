@@ -27,7 +27,7 @@ executable synthesis-toy
   main-is: Main.hs
   hs-source-dirs:
       src
-  default-extensions: GADTs FlexibleContexts FlexibleInstances MultiParamTypeClasses DeriveDataTypeable DeriveAnyClass DuplicateRecordFields RecordWildCards NamedFieldPuns TypeApplications ApplicativeDo ViewPatterns StandaloneDeriving
+  default-extensions: GADTs FlexibleContexts FlexibleInstances MultiParamTypeClasses DeriveDataTypeable DeriveAnyClass DeriveGeneric DuplicateRecordFields DefaultSignatures RecordWildCards NamedFieldPuns TypeApplications ApplicativeDo ViewPatterns StandaloneDeriving
   build-depends:
       base >= 4.7 && < 5
     , sbv

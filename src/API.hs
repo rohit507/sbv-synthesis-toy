@@ -13,7 +13,7 @@ import Data.Bits
 --   - DigitalIO : Source = Signal Output , Sink = Signal Input
 --   - Power     : Source = Power Supply  , Sink = Power Load
 data Direction = Source | Sink | Bidir
-  deriving (Eq, Ord, Enum, Show, Read, Data, SymWord, HasKind, SatModel)
+  deriving (Eq, Ord, Enum, Show, Read, Data, SymWord, HasKind, SatModel, Generic)
 
 -- | Types for different kinds of SW interaces that may be relevant. 
 --
