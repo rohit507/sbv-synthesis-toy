@@ -65,3 +65,44 @@ nameConstraint context (mName,constraint)
   where
     name (Just s) _ = s
     name _        c = show c
+
+nameConstraints :: (Show a)
+                => String
+                -> InputValue a
+                -> NamedInputValue a
+nameConstraints _ Unused = Unused
+nameConstraints context (Constraints cl) 
+  = Constraints $ zipWith (nameConstraint . appendContext) [1..] cl
+  where
+    appendContext i = context ++ ".contraint[" ++ show i ++ "]"
+
+namePortData :: String -> InputPortData -> NamedInputPortData
+namePortData context SW{..} = SW {
+    getDirection = (nameConstraints . (context +.+)) "direction" getDirection
+  , getApi       = (nameConstraints . (context +.+)) "api"       getApi
+  , getApiFlags  = (nameConstraints . (context +.+)) "apiFlags"  getApiFlags
+  , getApiUID    = (nameConstraints . (context +.+)) "apiUID"    getApiUID
+  , getHostUID   = (nameConstraints . (context +.+)) "hostUID"   getHostUID
+  }
+namePortData context DigitalIO{..} = DigitalIO {
+    getDirection = (nameConstraints . (context +.+)) "direction" getDirection
+  , getZeroLevel = (nameConstraints . (context +.+)) "zeroLevel" getZeroLevel
+  , getOneLevel = (nameConstraints . (context +.+)) "oneLevel" getOneLevel
+  , getZeroThreshold = (nameConstraints . (context +.+)) "zeroThreshold" getZeroThreshold
+  , getOneThreshold = (nameConstraints . (context +.+)) "zeroThreshold" getOneThreshold
+  , getApi       = (nameConstraints . (context +.+)) "api"       getApi
+  , getApiFlags  = (nameConstraints . (context +.+)) "apiFlags"  getApiFlags
+  , getApiUID    = (nameConstraints . (context +.+)) "apiUID"    getApiUID
+  }
+namePortData context Power{..} = Power {
+    getDirection = (nameConstraints . (context +.+)) "direction" getDirection
+  , getVoltage = (nameConstraints . (context +.+)) "voltage" getVoltage
+  , getCurrentDraw = (nameConstraints . (context +.+)) "currentDraw" getCurrentDraw
+  , getCurrentSupply = (nameConstraints . (context +.+)) "currentSupply" getCurrentSupply
+  }
+
+-- | Tiny string assembly utility function, just assembles two strings with a 
+--   dot in between
+(+.+) :: String -> String -> String
+a +.+ b = a ++ "." ++ b
+
