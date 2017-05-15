@@ -142,7 +142,8 @@ deriving instance (Read (f Direction), Read (f Api), Read (f FlagSet), Read (f F
 data Port f = Port {
     getName :: String,
     -- What is the port's UID? 
-    getUID  :: Maybe PortUID,
+    getRawUID :: Maybe PortUID,
+    getUID :: f UID,
     -- Is the port being used in the design? 
     getUsed :: f Bool,
     -- Is the port connected to something? 
@@ -164,7 +165,8 @@ data ElemData f = ElemData {
     -- The Base Name of this element
     getName :: String,
     -- The UID of this block or link
-    getUID :: Maybe UID,
+    getRawUID :: Maybe UID,
+    getUID :: f UID,
     -- Whether the block or link is part of the output design
     getUsed :: f Bool,
     -- The element's ports
