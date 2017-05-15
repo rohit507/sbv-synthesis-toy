@@ -4,7 +4,7 @@
 module API where
 
 import Data.SBV
-import Data.Generics
+import Data.Data
 import Data.Bits
 
 -- | The direction for various interfaces. 
@@ -13,13 +13,13 @@ import Data.Bits
 --   - DigitalIO : Source = Signal Output , Sink = Signal Input
 --   - Power     : Source = Power Supply  , Sink = Power Load
 data Direction = Source | Sink | Bidir
-  deriving (Eq, Ord, Enum, Show, Read, Data, SymWord, HasKind, SatModel, Generic)
+  deriving (Eq, Ord, Enum, Show, Read, Data, SymWord, HasKind, SatModel)
 
 -- | Types for different kinds of SW interaces that may be relevant. 
 --
 --   NOTE :: Our actual synthesis tool carries much more information
 --           than a simple enum allows. 
-data Api = LED | Button | Thermometer | Motor | LightSensor | DistanceSensor 
+data Api = LED | Button | Thermometer | Motor | LightSensor | DistanceSensor
   | Fan | Display
   deriving (Eq, Ord, Enum, Show, Read, Data, SymWord, HasKind, SatModel)
 

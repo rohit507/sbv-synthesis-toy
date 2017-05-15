@@ -21,12 +21,12 @@ default-extensions:
   - DeriveAnyClass
   - DeriveGeneric
   - DuplicateRecordFields
-#  - DefaultSignatures
   - RecordWildCards
   - NamedFieldPuns
   - TypeApplications
   - ApplicativeDo
   - ViewPatterns
+  - TupleSections
   - StandaloneDeriving
 
 dependencies:
@@ -35,7 +35,7 @@ dependencies:
   - mtl
   - containers
   - newtype
-  - syb
+#  - syb
 
 executables:
   synthesis-toy:
@@ -44,3 +44,4 @@ executables:
     other-modules:
       - Types
       - API
+      - Input
