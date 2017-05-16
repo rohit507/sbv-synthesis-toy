@@ -1,7 +1,7 @@
 module Main where
 
 import Types
-import Input
+import Synthesis
 
 main :: IO ()
 main = do

@@ -12,6 +12,8 @@ import Data.Bifunctor
 import Data.Map (Map)
 import qualified Data.Map as Map
 
+-- The most general type for a lot of the input constraints, allows you to 
+-- specificy a name where applicable.
 type InputValue   = Constraints ((,) (Maybe String))
 type InputPortData  = PortData InputValue
 type InputPort      = Port InputValue
@@ -54,7 +56,7 @@ instance SymWord a => Monoid (InputValue a) where
 
 -- UIDs are only going to be assigned when we insert the element into the
 -- design, so we'll just stick a function in there.
-type NamedInputValue   = Constraints ((,) String)
+type NamedInputValue   = Named (Constraints ((,) String))
 type NamedInputPortData  = PortData NamedInputValue
 type NamedInputPort      = Port     NamedInputValue
 type NamedInputElemData  = ElemData NamedInputValue
@@ -75,9 +77,9 @@ nameConstraints :: (Show a)
                 => String
                 -> InputValue a
                 -> NamedInputValue a
-nameConstraints _ Unused = Unused
+nameConstraints context Unused = Named context Unused
 nameConstraints context (Constraints cl) 
-  = Constraints $ zipWith (nameConstraint . appendContext) [1..] cl
+  = Named context . Constraints $ zipWith (nameConstraint . appendContext) [1..] cl
   where
     appendContext i = context ++ ".contraint[" ++ show i ++ "]"
 
@@ -119,11 +121,11 @@ namePort context p@Port{..} = p{
   , getUsed = (nameConstraints . (context' +.+)) "used" getUsed
   , getConnected = (nameConstraints . (context' +.+)) "connected" getConnected
   , getConnectedUID = (nameConstraints . (context' +.+)) "connectedUID" getConnectedUID
-  , getData = namePortData context' getData
+  , getPortData = namePortData context' getPortData
   }
   where
     context' = case getRawUID of
-      Just i -> context +.+ getName ++ "[" ++ show i ++ "]"
+      Just i -> {- context +.+ getName ++ -} "[" ++ show i ++ "]"
       -- You should only be calling this after the UID has been assigned 
       Nothing -> undefined
 
@@ -133,24 +135,26 @@ nameElemData :: String -> InputElemData -> NamedInputElemData
 nameElemData context e@ElemData{..} = e {
     getUID = (nameConstraints . (context' +.+)) "uid" getUID
   , getUsed = (nameConstraints . (context' +.+)) "used" getUsed
-  , getPorts = namePort context' <$> getPorts
+  , getPorts = Map.mapWithKey (namePort . (context' +.+)) getPorts
   }
   where
     context' = case getRawUID of
-      Just i -> context +.+ getName ++ "[" ++ show i ++ "]"
+      Just i -> {- context +.+ getName ++ -} "[" ++ show i ++ "]"
       -- You should only be calling this after the UID has been assigned 
       Nothing -> undefined
 
 -- | Given an action that extracts a UID add one to the design.
-addPortUID :: forall m f. Monad m => m UID -> Port f -> m (Port f)
+addPortUID :: Monad m => m UID -> Port f -> m (Port f)
 addPortUID genUID p@Port{..} = do
   uid <- case getRawUID of
     Just i -> return i
     Nothing -> genUID
-  return $ p{getRawUID = Just uid, getData = getData}
+  -- *sigh* The `getData` bit here just lets us forgo the manual annotation
+  -- needed to get GHC to understand that we're talking about `Port`s here. 
+  return $ p{getRawUID = Just uid, getPortData = getPortData}
 
 -- | Given an action that extracts a UID, add them to the elements and ports. 
-addElemDataUID :: forall m f. Monad m => m UID -> ElemData f -> m (ElemData f)
+addElemDataUID :: Monad m => m UID -> ElemData f -> m (ElemData f)
 addElemDataUID genUID e@ElemData{..} = do
   -- I'd like to keep all the UIDs for elems and their ports as 
   -- contiguous as possible. 

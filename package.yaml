@@ -30,6 +30,9 @@ default-extensions:
   - StandaloneDeriving
   - ExplicitForAll
   - ScopedTypeVariables
+  - TemplateHaskell
+  - FunctionalDependencies
+  - PatternGuards
 
 dependencies:
   - base >= 4.7 && < 5
@@ -37,7 +40,7 @@ dependencies:
   - mtl
   - containers
   - newtype
-#  - syb
+  - lens
 
 executables:
   synthesis-toy:
@@ -47,3 +50,4 @@ executables:
       - Types
       - API
       - Input
+      - Synthesis

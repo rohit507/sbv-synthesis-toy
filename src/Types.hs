@@ -7,10 +7,11 @@ import Data.SBV
 import Data.Map (Map)
 import qualified Data.Map as Map
 
-import Control.Monad.State
 import Control.Newtype
 
 import API
+
+import Control.Lens
 
 -- | The datatype that captures certain types of contraints and ambiguity.
 --
@@ -29,7 +30,7 @@ data Constraint a where
   -- (minmum then maximum. To avoid the haskell-src-exts parse error. :/)
   Between :: (Ord a, SymWord a, OrdSymbolic (SBV a)) => a -> a -> Constraint a
   -- The flags that happen to be specified for this tool. 
-  SetFlags :: (Enum a, Bounded a, Show a) => [(a,Bool)] -> Constraint FlagSet
+  SetFlags :: (a ~ FlagSet) => MaskedFlags -> Constraint a
 
 deriving instance (Show a) => Show (Constraint a)
 
@@ -140,7 +141,7 @@ deriving instance (Read (f Direction), Read (f Api), Read (f FlagSet), Read (f F
 
 -- Data that is neccesary for every port 
 data Port f = Port {
-    getName :: String,
+    -- getName :: String,
     -- What is the port's UID? 
     getRawUID :: Maybe PortUID,
     getUID :: f UID,
@@ -151,8 +152,10 @@ data Port f = Port {
     -- What is the port connected to? 
     getConnectedUID :: f PortUID,
     -- What other information do we have about the port? 
-    getData :: PortData f
+    getPortData :: PortData f
   }
+
+makeLensesWith abbreviatedFields ''Port
 
 -- This needs undecidable instances, and I'm too lazy to write the version
 -- that would work without it. 
@@ -163,7 +166,7 @@ deriving instance (Read (PortData f), Read (f Bool), Read (f UID)) => Read (Port
 --   it's being used. 
 data ElemData f = ElemData {
     -- The Base Name of this element
-    getName :: String,
+    -- getName :: String,
     -- The UID of this block or link
     getRawUID :: Maybe UID,
     getUID :: f UID,
@@ -173,23 +176,10 @@ data ElemData f = ElemData {
     getPorts :: Map String (Port f)
   }
 
+makeLensesWith abbreviatedFields ''ElemData
+
 -- This needs undecidable instances, and I'm too lazy to write the version
 -- that would work without it. 
 deriving instance (Show (Port f), Show (f Bool), Show (f UID)) => Show (ElemData f)
 deriving instance (Read (Port f), Read (f Bool), Read (f UID)) => Read (ElemData f)
 
--- | Internal state for the monad we use to assemble a CSP
-data SynthState = SynthState {
-    getUIDCounter  :: UID
-  , getLinks       :: Map LinkUID  (ElemData (Named SBV))
-  , getBlocks      :: Map BlockUID (ElemData (Named SBV))
-  , getLinkPorts   :: Map LinkPortUID  (Port (Named SBV))
-  , getBlockPorts  :: Map BlockPortUID (Port (Named SBV))
-  , getConnections :: Map BlockPortUID (Map LinkPortUID (Named SBV Bool))
-  }
-
-deriving instance Show SynthState
-
--- | The actual CSP assembly monad, it mostly keeps track of things we care
---   about  
-type Synth a = StateT SynthState Symbolic
