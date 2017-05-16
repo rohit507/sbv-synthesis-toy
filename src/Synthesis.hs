@@ -23,11 +23,10 @@ import Control.Lens
 
 -- The type of values as they exist within the SBV monad, we keep track of what
 -- we named them as well as the actual ref
-type SynthValue = Named SBV
-type SynthPortData = PortData SynthValue
-type SynthPort = Port SynthValue
-type SynthElemData = Port SynthValue
-
+type SymbValue = Named SBV
+type SymbPortData = PortData SymbValue
+type SymbPort = Port SymbValue
+type SymbElemData = Port SymbValue
 
 -- The type of values as they exist outside the SBV monad, as the strings
 -- needed to retrive them from one of SBV's models 
@@ -65,25 +64,25 @@ deriving instance (Read (ElemData f), Read (Port f), Read (f Bool)) => Read (Mod
 
 -- | The actual CSP assembly monad, it mostly keeps track of the momentary
 --   internal state of the Symbolic Monad as we build things out. 
-type Synth = StateT (Model (Named SBV)) Symbolic
+type Symb = StateT (Model (Named SBV)) Symbolic
 
 -- | Grab a new UID and update the counter as needed.
-newUID :: Synth UID
+newUID :: Symb UID
 newUID = uIDCounter <+= 1
 
 -- | Create the relevant symbolic variable and constraints for a named input
 --   value.
-makeSymb :: forall a. SymWord a => NamedInputValue a -> Synth (Named SBV a)
-makeSymb (Named name Unused) = do
-  sv <- lift $ free name
-  return $ Named name sv
+makeSymb :: forall a. SymWord a => NamedInputValue a -> Symb (Named SBV a)
+makeSymb (Named name Unused) = undefined
 makeSymb (Named name (Constraints cs)) = do
   sv <- lift $ free name
   let nv = Named name sv
   mapM_ (makeConstraint nv) cs
   return nv
   where
-    makeConstraint :: Named SBV b -> (String,Constraint b) -> Synth ()
+    -- | Add each individual constraint to the symbolic variable that already
+    --   exists. 
+    makeConstraint :: Named SBV b -> (String,Constraint b) -> Symb ()
     makeConstraint Named{..} (name,Is v)
       = lift . namedConstraint name $ getValue .== literal v
     makeConstraint Named{..} (name,OneOf vs)
@@ -95,3 +94,24 @@ makeSymb (Named name (Constraints cs)) = do
     makeConstraint Named{..} (name,SetFlags MaskedFlags{..})
       = lift . namedConstraint name $ (getValue .&. literal getMask) .== literal getFlags
 
+symbPortData :: NamedInputPortData -> Symb SymbPortData
+symbPortData SW{..} = SW
+  <$> makeSymb getDirection
+  <*> makeSymb getApi
+  <*> makeSymb getApiFlags
+  <*> makeSymb getApiUID
+  <*> makeSymb getHostUID
+symbPortData DigitalIO{..} = DigitalIO
+  <$> makeSymb getDirection
+  <*> makeSymb getZeroLevel
+  <*> makeSymb getOneLevel
+  <*> makeSymb getZeroThreshold
+  <*> makeSymb getOneThreshold
+  <*> makeSymb getApi
+  <*> makeSymb getApiFlags
+  <*> makeSymb getApiUID
+symbPortData Power{..} = Power
+  <$> makeSymb getDirection
+  <*> makeSymb getVoltage
+  <*> makeSymb getCurrentDraw
+  <*> makeSymb getCurrentSupply
