@@ -67,7 +67,7 @@ nameConstraint :: (Show a)
                -> (Maybe String, Constraint a)
                -> (String, Constraint a)
 nameConstraint context (mName,constraint)
-  = (context ++ ": " ++ name mName constraint, constraint)
+  = (context ++ " : " ++ name mName constraint, constraint)
   where
     name (Just s) _ = s
     name _        c = show c
@@ -81,7 +81,7 @@ nameConstraints context Unused = Named context Unused
 nameConstraints context (Constraints cl) 
   = Named context . Constraints $ zipWith (nameConstraint . appendContext) [1..] cl
   where
-    appendContext i = context ++ ".contraint[" ++ show i ++ "]"
+    appendContext i = context -- ++ ".contraint[" ++ show i ++ "]"
 
 -- TODO :: Do this with a functor morphism/traversal or something? The big
 --         issue is figuring out if there's any good laws that will let me 
@@ -125,7 +125,7 @@ namePort context p@Port{..} = p{
   }
   where
     context' = case getRawUID of
-      Just i -> {- context +.+ getName ++ -} "[" ++ show i ++ "]"
+      Just i -> "[" ++ show i ++ "]"
       -- You should only be calling this after the UID has been assigned 
       Nothing -> undefined
 
@@ -139,23 +139,32 @@ nameElemData context e@ElemData{..} = e {
   }
   where
     context' = case getRawUID of
-      Just i -> {- context +.+ getName ++ -} "[" ++ show i ++ "]"
+      Just i -> "[" ++ show i ++ "]"
       -- You should only be calling this after the UID has been assigned 
       Nothing -> undefined
 
--- | Given an action that extracts a UID add one to the design.
-addPortUID :: Monad m => m UID -> Port f -> m (Port f)
-addPortUID genUID p@Port{..} = do
+-- | Given an action that extracts a UID add one to the design, also fills 
+--   in various fields. 
+initPort :: Monad m => m UID -> InputPort -> m InputPort
+initPort genUID p@Port{..} = do
   uid <- case getRawUID of
     Just i -> return i
     Nothing -> genUID
   -- *sigh* The `getData` bit here just lets us forgo the manual annotation
   -- needed to get GHC to understand that we're talking about `Port`s here. 
-  return $ p{getRawUID = Just uid, getPortData = getPortData}
+  return $ p{
+      getRawUID = Just uid,
+      getUID = unnamed [Is uid],
+      getUsed = unnamed [],
+      getConnected = unnamed [],
+      getConnectedUID = unnamed [],
+      getPortData = getPortData
+    }
 
 -- | Given an action that extracts a UID, add them to the elements and ports. 
-addElemDataUID :: Monad m => m UID -> ElemData f -> m (ElemData f)
-addElemDataUID genUID e@ElemData{..} = do
+--   Also fills in various fields.
+initElemData :: Monad m => m UID -> InputElemData -> m InputElemData
+initElemData genUID e@ElemData{..} = do
   -- I'd like to keep all the UIDs for elems and their ports as 
   -- contiguous as possible. 
   uid <- case getRawUID of
@@ -163,8 +172,13 @@ addElemDataUID genUID e@ElemData{..} = do
     Nothing -> genUID
   -- Keeping this separate ensures we're not assuming that the existence of a
   -- UID for the Elem implies the existence of a UID for each port. 
-  ports <- traverse (addPortUID genUID) getPorts
-  return $ e{getRawUID = Just uid, getPorts = ports}
+  ports <- traverse (initPort genUID) getPorts
+  return $ e{
+      getRawUID = Just uid,
+      getUID = unnamed [Is uid],
+      getUsed = unnamed [],
+      getPorts = ports
+    }
 
 
 -- | Tiny string assembly utility function, just assembles two strings with a 

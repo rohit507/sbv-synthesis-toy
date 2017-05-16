@@ -59,6 +59,10 @@ data Named f a = Named {getName :: String, getValue :: f a}
 data MaybeNamed f a = MaybeNamed {getName :: Maybe String, getValue :: f a}
   deriving (Show, Read)
 
+-- | Swap the inner data without changing the name. 
+swapNamed :: (f a -> g b) -> Named f a -> Named g b
+swapNamed f (Named n v) = Named n (f v)
+
 -- | Takes a named item, strips the actual value, and returns just the name.
 toName :: Named f a -> Name a
 toName Named{ getName} = Name getName
