@@ -13,6 +13,8 @@ import qualified Data.Map as Map
 
 import Data.Functor.Identity
 
+import Data.Maybe (fromJust)
+
 import Data.SBV
 
 import Data.Bits
@@ -137,18 +139,38 @@ symbElemData ElemData{..} = ElemData getRawUID
 --   by using the correct pair of lenses.
 addElem :: Lens' (Model (Named SBV)) (Map UID (ElemData (Named SBV)))
         -> Lens' (Model (Named SBV)) (Map UID (Port (Named SBV)))
+        -> String -- The name of the element
         -> InputElemData -- the actual input
         -> (String -> SymbElemData -> Symb ()) -- The closure for extra constraints
-        -> Symb SymbElemData -- The action that will generation the element
-addElem elemLens portLens input cons = undefined
+        -> Symb () -- The action that will generation the element
+addElem elemLens portLens name input constrain = do
+  (name',ned) <- nameElemData name <$> initElemData newUID input
+  sed <- symbElemData ned
+  -- NOTE :: Yes, I know partial functions are the devil. I should enforce it
+  --         in the type somehow, but the assumption is that we have an
+  --         assigned UID by this point. Our call to `initElemData` should
+  --         do the assignment. 
+  elemLens %= Map.insert (fromJust $ sed ^. rawUID) sed
+  mapM_ (\ p -> portLens %= Map.insert (fromJust $ p ^. rawUID) p) $ sed ^. ports
+  constrain name' sed
+
+
+-- | Add a block to the design, see `addElem` for a more detailed breakdown of
+--   inputs and the like. 
+addBlock :: String -> InputElemData -> (String -> SymbElemData -> Symb ()) 
+         -> Symb ()
+addBlock = addElem blocks blockPorts
+
+-- | Add a block to the design, see `addElem` for a more detailed breakdown of
+--   inputs and the like. 
+addLink :: String -> InputElemData -> (String -> SymbElemData -> Symb ()) 
+         -> Symb ()
+addLink = addElem links linkPorts
+
 
 -- addBlock
 -- addLink
 -- addMissingEdges
-
--- ## Specification.hs ##
--- genSpec
--- shrinkSpec
 
 -- ## Extract.hs ##
 -- extractPortData
@@ -157,9 +179,22 @@ addElem elemLens portLens input cons = undefined
 -- extractEdge
 -- extractModel
 
+-- ## Library.hs ##
+-- <smattering of parts>
+
+-- ## Specification.hs ##
+-- genSpec
+-- shrinkSpec
+
+-- ## Problem ##
+-- runProblem
+
 -- ## AllSet ##
 -- constrainTopology
 -- allDesigns
 
 -- ## Search ##
 -- searchSpec
+
+-- ## Main ## 
+-- <various test cases>

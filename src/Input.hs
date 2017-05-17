@@ -125,21 +125,21 @@ namePort context p@Port{..} = p{
   }
   where
     context' = case getRawUID of
-      Just i -> "[" ++ show i ++ "]"
+      Just i -> context ++ brk i
       -- You should only be calling this after the UID has been assigned 
       Nothing -> undefined
 
 -- | Adding more useful names for each element, only do this after UIDs have 
 --   been assigned.
-nameElemData :: String -> InputElemData -> NamedInputElemData
-nameElemData context e@ElemData{..} = e {
+nameElemData :: String -> InputElemData -> (String,NamedInputElemData)
+nameElemData context e@ElemData{..} = (,) context' $ e {
     getUID = (nameConstraints . (context' +.+)) "uid" getUID
   , getUsed = (nameConstraints . (context' +.+)) "used" getUsed
   , getPorts = Map.mapWithKey (namePort . (context' +.+)) getPorts
   }
   where
     context' = case getRawUID of
-      Just i -> "[" ++ show i ++ "]"
+      Just i -> context ++ brk i
       -- You should only be calling this after the UID has been assigned 
       Nothing -> undefined
 
@@ -150,7 +150,7 @@ initPort genUID p@Port{..} = do
   uid <- case getRawUID of
     Just i -> return i
     Nothing -> genUID
-  -- *sigh* The `getData` bit here just lets us forgo the manual annotation
+  -- *sigh* The `getPortData` bit here just lets us forgo the manual annotation
   -- needed to get GHC to understand that we're talking about `Port`s here. 
   return $ p{
       getRawUID = Just uid,
@@ -186,3 +186,6 @@ initElemData genUID e@ElemData{..} = do
 (+.+) :: String -> String -> String
 a +.+ b = a ++ "." ++ b
 
+-- | Another helper, this time for wrapping a uid up in brackets.
+brk :: Show a => a -> String
+brk = (++ "]") . ("[" ++) . show

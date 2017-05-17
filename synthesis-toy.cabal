@@ -27,7 +27,7 @@ executable synthesis-toy
   main-is: Main.hs
   hs-source-dirs:
       src
-  default-extensions: GADTs FlexibleContexts FlexibleInstances MultiParamTypeClasses DeriveDataTypeable DeriveAnyClass DeriveGeneric DuplicateRecordFields RecordWildCards NamedFieldPuns TypeApplications ApplicativeDo ViewPatterns TupleSections StandaloneDeriving ExplicitForAll ScopedTypeVariables TemplateHaskell FunctionalDependencies PatternGuards
+  default-extensions: GADTs FlexibleContexts FlexibleInstances MultiParamTypeClasses DeriveDataTypeable DeriveAnyClass DeriveGeneric DuplicateRecordFields RecordWildCards NamedFieldPuns TypeApplications ApplicativeDo ViewPatterns TupleSections StandaloneDeriving ExplicitForAll ScopedTypeVariables TemplateHaskell FunctionalDependencies PatternGuards RankNTypes
   build-depends:
       base >= 4.7 && < 5
     , sbv

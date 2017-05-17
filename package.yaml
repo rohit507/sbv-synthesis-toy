@@ -33,6 +33,7 @@ default-extensions:
   - TemplateHaskell
   - FunctionalDependencies
   - PatternGuards
+  - RankNTypes
 
 dependencies:
   - base >= 4.7 && < 5
