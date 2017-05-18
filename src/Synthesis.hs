@@ -130,7 +130,7 @@ symbElem Elem{..} = Elem getName getRawUID
 -- | Generic function to add an element to the design. Can specialize later
 --   by using the correct pair of lenses.
 addElem :: Lens' SymbModel (Map UID SymbElem)
-        -> Lens' SymbModel (Map UID SymbElem)
+        -> Lens' SymbModel (Map UID SymbPort)
         -> InputElem -- the actual input
         -> (String -> SymbElem -> Symb ()) -- The closure for extra constraints
         -> Symb () -- The action that will generation the element
