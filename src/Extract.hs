@@ -13,6 +13,7 @@ import Data.SBV hiding (name)
 import qualified Data.SBV as SBV
 
 import Control.Monad.Reader
+import Control.Monad.Except
 
 import Control.Lens
 
@@ -94,10 +95,69 @@ stripModel Model{..} = Model{
     getRevConnections = fmap (fmap toName) getRevConnections
   }
 
+-- | The type of the monad in which we reconstruct values.
+type Extract m = ReaderT m (Either String)
 
--- ## Extract.hs ##
--- extractPortData
--- extractPort
--- extractElem
--- extractEdge
--- extractModel
+-- | Convert a maybe into an error in the appropriate monad
+justErr :: MonadError e m => e -> Maybe a -> m a
+justErr _ (Just a) = return a
+justErr e Nothing = throwError e
+
+-- | Extract a value with a given name from the SMT output
+extractValue :: (Modelable m, SymWord a) => Name a -> Extract m (OutValue a)
+extractValue (Name s) = do
+  model <- ask 
+  val <- justErr ("Feiled to extract : " ++ s) $ getModelValue s model
+  return $ Named s (Identity val)
+
+-- | Extract a particular portdata from the SMT Output
+extractPortData :: (Modelable m) => RefPortData -> Extract m OutPortData
+extractPortData SW{..} = SW
+  <$> extractValue getDirection
+  <*> extractValue getApi
+  <*> extractValue getApiFlags
+  <*> extractValue getApiUID
+  <*> extractValue getHostUID
+  <*> extractValue getIsGPIO
+extractPortData DigitalIO{..} = DigitalIO
+  <$> extractValue getDirection
+  <*> extractValue getZeroLevel
+  <*> extractValue getOneLevel
+  <*> extractValue getZeroThreshold
+  <*> extractValue getOneThreshold
+  <*> extractValue getApi
+  <*> extractValue getApiFlags
+  <*> extractValue getApiUID
+extractPortData Power{..} = Power
+  <$> extractValue getDirection
+  <*> extractValue getVoltage
+  <*> extractValue getCurrentDraw
+  <*> extractValue getCurrentSupply
+
+-- | Extract a port from the SMT Output
+extractPort :: Modelable m => RefPort -> Extract m OutPort
+extractPort Port{..} = Port getName getRawUID
+  <$> extractValue getUID
+  <*> extractValue getUsed
+  <*> extractValue getConnected
+  <*> extractValue getConnectedUID
+  <*> extractPortData getPortData
+
+-- | extract an element from the SMT output
+extractElem :: Modelable m => RefElem -> Extract m OutElem
+extractElem Elem{..} = Elem getName getRawUID
+  <$> extractValue getUID
+  <*> extractValue getUsed
+  <*> mapM extractPort getPorts
+
+-- | Extract the data for an entire model from the SMT Output
+extractModel :: Modelable m => RefModel -> Extract m OutModel
+extractModel Model{..} = Model getUIDCounter
+  <$> mapM extractElem getLinks
+  <*> mapM extractElem getBlocks
+  <*> mapM extractPort getLinkPorts
+  <*> mapM extractPort getBlockPorts
+  <*> mapM (mapM extractValue) getConnections
+  <*> mapM (mapM extractValue) getRevConnections
+
+
