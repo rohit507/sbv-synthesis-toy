@@ -32,20 +32,7 @@ type SymbValue = Named SBV
 type SymbPortData = PortData SymbValue
 type SymbPort = Port SymbValue
 type SymbElem = Elem SymbValue
-
--- The type of values as they exist outside the SBV monad, as the strings
--- needed to retrive them from one of SBV's models 
-type RefValue = Name
-type RefPortData = PortData RefValue
-type RefPort = Port RefValue
-type RefElem = Elem RefValue
-
--- The type of values as they exist outside the SBV monad, as the strings
--- needed to retrive them from one of SBV's models 
-type OutValue = Named Identity
-type OutPortData = PortData OutValue
-type OutPort = Port OutValue
-type OutElem = Elem OutValue
+type SymbModel = Model SymbValue
 
 -- | Our model of the current problem, It captures all the relevant data in 
 --   the system. The UID is just for convinience, it's only really useful when
@@ -78,7 +65,7 @@ newUID = uIDCounter <+= 1
 
 -- | Create the relevant symbolic variable and constraints for a named input
 --   value.
-symbValue :: forall a. SymWord a => NamedInputValue a -> Symb (Named SBV a)
+symbValue :: forall a. SymWord a => NamedInputValue a -> Symb (SymbValue a)
 symbValue (Named name Unused) = undefined
 symbValue (Named name (Constraints cs)) = do
   sv <- lift $ free name
@@ -88,7 +75,7 @@ symbValue (Named name (Constraints cs)) = do
   where
     -- | Add each individual constraint to the symbolic variable that already
     --   exists. 
-    symbConstraint :: Named SBV b -> (String,Constraint b) -> Symb ()
+    symbConstraint :: SymbValue b -> (String,Constraint b) -> Symb ()
     symbConstraint Named{..} (name,Is v)
       = lift . namedConstraint name $ getValue .== literal v
     symbConstraint Named{..} (name,OneOf vs)
@@ -142,8 +129,8 @@ symbElem Elem{..} = Elem getName getRawUID
 
 -- | Generic function to add an element to the design. Can specialize later
 --   by using the correct pair of lenses.
-addElem :: Lens' (Model (Named SBV)) (Map UID (Elem (Named SBV)))
-        -> Lens' (Model (Named SBV)) (Map UID (Port (Named SBV)))
+addElem :: Lens' SymbModel (Map UID SymbElem)
+        -> Lens' SymbModel (Map UID SymbElem)
         -> InputElem -- the actual input
         -> (String -> SymbElem -> Symb ()) -- The closure for extra constraints
         -> Symb () -- The action that will generation the element
@@ -234,7 +221,7 @@ addEdges = do
 
     -- | Assumes that the edge isn't in either map already. Does not try to 
     --   add type equality checking.
-    addEdgeHelper :: SymbPort -> SymbPort -> Symb (Named SBV Bool)
+    addEdgeHelper :: SymbPort -> SymbPort -> Symb (SymbValue Bool)
     addEdgeHelper bPort lPort = do
       let connName = bPort ^. name ++ " <-> " ++ lPort ^. name
           consNameT = connName ++ " : Connected"
@@ -257,12 +244,7 @@ addEdges = do
          (Map.singleton lpUID $ Map.singleton bpUID ncv)
       return ncv
 
--- ## Extract.hs ##
--- extractPortData
--- extractPort
--- extractElem
--- extractEdge
--- extractModel
+
 
 -- ## Library.hs ##
 -- <smattering of parts>
