@@ -17,7 +17,7 @@ import qualified Data.Map as Map
 type InputValue   = Constraints ((,) (Maybe String))
 type InputPortData  = PortData InputValue
 type InputPort      = Port InputValue
-type InputElemData  = ElemData InputValue
+type InputElem  = Elem InputValue
 
 {-
 testPort :: InputPort
@@ -59,7 +59,7 @@ instance SymWord a => Monoid (InputValue a) where
 type NamedInputValue   = Named (Constraints ((,) String))
 type NamedInputPortData  = PortData NamedInputValue
 type NamedInputPort      = Port     NamedInputValue
-type NamedInputElemData  = ElemData NamedInputValue
+type NamedInputElem  = Elem NamedInputValue
 
 -- | Give each constraint a more-useful, unique name
 nameConstraint :: (Show a)
@@ -95,6 +95,7 @@ namePortData context SW{..} = SW {
   , getApiFlags  = (nameConstraints . (context +.+)) "apiFlags"  getApiFlags
   , getApiUID    = (nameConstraints . (context +.+)) "apiUID"    getApiUID
   , getHostUID   = (nameConstraints . (context +.+)) "hostUID"   getHostUID
+  , getIsGPIO    = (nameConstraints . (context +.+)) "isGPIO"    getIsGPIO
   }
 namePortData context DigitalIO{..} = DigitalIO {
     getDirection = (nameConstraints . (context +.+)) "direction" getDirection
@@ -117,7 +118,8 @@ namePortData context Power{..} = Power {
 --   been assigned. 
 namePort :: String -> InputPort -> NamedInputPort
 namePort context p@Port{..} = p{
-    getUID = (nameConstraints . (context' +.+)) "uid" getUID
+    getName = context'
+  , getUID = (nameConstraints . (context' +.+)) "uid" getUID
   , getUsed = (nameConstraints . (context' +.+)) "used" getUsed
   , getConnected = (nameConstraints . (context' +.+)) "connected" getConnected
   , getConnectedUID = (nameConstraints . (context' +.+)) "connectedUID" getConnectedUID
@@ -125,21 +127,22 @@ namePort context p@Port{..} = p{
   }
   where
     context' = case getRawUID of
-      Just i -> context ++ brk i
+      Just i -> context +?.+ getName ++ brk i
       -- You should only be calling this after the UID has been assigned 
       Nothing -> undefined
 
 -- | Adding more useful names for each element, only do this after UIDs have 
 --   been assigned.
-nameElemData :: String -> InputElemData -> (String,NamedInputElemData)
-nameElemData context e@ElemData{..} = (,) context' $ e {
-    getUID = (nameConstraints . (context' +.+)) "uid" getUID
+nameElem :: String -> InputElem -> NamedInputElem
+nameElem context e@Elem{..} = e {
+    getName = context'
+  , getUID = (nameConstraints . (context' +.+)) "uid" getUID
   , getUsed = (nameConstraints . (context' +.+)) "used" getUsed
   , getPorts = Map.mapWithKey (namePort . (context' +.+)) getPorts
   }
   where
     context' = case getRawUID of
-      Just i -> context ++ brk i
+      Just i -> context +?.+ getName ++ brk i
       -- You should only be calling this after the UID has been assigned 
       Nothing -> undefined
 
@@ -163,8 +166,8 @@ initPort genUID p@Port{..} = do
 
 -- | Given an action that extracts a UID, add them to the elements and ports. 
 --   Also fills in various fields.
-initElemData :: Monad m => m UID -> InputElemData -> m InputElemData
-initElemData genUID e@ElemData{..} = do
+initElem :: Monad m => m UID -> InputElem -> m InputElem
+initElem genUID e@Elem{..} = do
   -- I'd like to keep all the UIDs for elems and their ports as 
   -- contiguous as possible. 
   uid <- case getRawUID of
@@ -181,10 +184,17 @@ initElemData genUID e@ElemData{..} = do
     }
 
 
+infixr 8 +.+
 -- | Tiny string assembly utility function, just assembles two strings with a 
 --   dot in between
 (+.+) :: String -> String -> String
 a +.+ b = a ++ "." ++ b
+
+infixr 8 +?.+
+-- | Add the little dot only if the input string exists.
+(+?.+) :: String -> String -> String
+"" +?.+ b = b
+a  +?.+ b = a +.+ b
 
 -- | Another helper, this time for wrapping a uid up in brackets.
 brk :: Show a => a -> String

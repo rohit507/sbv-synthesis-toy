@@ -47,6 +47,8 @@ deriving instance (Show (f (Constraint a))) => Show (Constraints f a)
 newtype Name a = Name {getName :: String}
   deriving (Show, Read)
 
+makeLensesWith abbreviatedFields ''Name
+
 instance Newtype (Name a) String where
   pack = Name
   unpack = getName
@@ -55,9 +57,13 @@ instance Newtype (Name a) String where
 data Named f a = Named {getName :: String, getValue :: f a}
   deriving (Show, Read)
 
+makeLensesWith abbreviatedFields ''Named
+
 -- | Type with both a name and an associated value of some sort.
 data MaybeNamed f a = MaybeNamed {getName :: Maybe String, getValue :: f a}
   deriving (Show, Read)
+
+makeLensesWith abbreviatedFields ''MaybeNamed
 
 -- | Swap the inner data without changing the name. 
 swapNamed :: (f a -> g b) -> Named f a -> Named g b
@@ -84,20 +90,23 @@ type BlockPortUID = UID
 -- | This whole thing is meant to allow us to easily capture all the
 --   states used for each item in our actual design. 
 --
---   PortData (Constraints (String,)) / Port (Constraints (String,)) / ElemData (Constraints (String,)) = 
+--   PortData (Constraints (String,)) / Port (Constraints (String,)) / Elem (Constraints (String,)) = 
 --      Basic sets of constraints over the values in each type of object, 
 --      along with the names we'll use for those constraints. 
 --
---   PortData (Named SBV) / Port (Named SBV) / ElemData (Named SBV) =
+--   PortData (Named SBV) / Port (Named SBV) / Elem (Named SBV) =
 --      The names we use to extract information and the internal SBV Variables 
 --
---   PortData Name / Port Name / ElemData Name =
+--   PortData Name / Port Name / Elem Name =
 --      Just the names, for when we need to extract our output
 --
---   PortData Identity / Port Identity / ElemData Identity = 
+--   PortData Identity / Port Identity / Elem Identity = 
 --      Just the final assigned values for everything, our output
 
 -- | Data specific to the various kinds of ports that we end up using.
+--
+--   NOTE :: In an actual system these types would all be dealt with at runtime
+--           to allow the library author to choose them as needed.
 data PortData f
   = SW {
       getDirection :: f Direction,
@@ -109,7 +118,10 @@ data PortData f
       -- The UID of the thing the API is connecting to.
       getApiUID    :: f BlockUID,
       -- The UID of the host processor that the library is running on
-      getHostUID   :: f BlockUID
+      getHostUID   :: f BlockUID,
+      -- Is this just the digital IO interface for this data, or is it the 
+      -- final dive-class specific interface? 
+      getIsGPIO    :: f Bool
     }
   | DigitalIO {
       getDirection :: f Direction,
@@ -138,14 +150,18 @@ data PortData f
       getCurrentSupply :: f Float
     }
 
+makeLensesWith abbreviatedFields ''PortData
+
 -- This needs undecidable instances, and I'm too lazy to write the version
 -- that would work without it. 
-deriving instance (Show (f Direction), Show (f Api), Show (f FlagSet), Show (f Float), Show (f UID)) => Show (PortData f)
-deriving instance (Read (f Direction), Read (f Api), Read (f FlagSet), Read (f Float), Read (f UID)) => Read (PortData f)
+deriving instance (Show (f Direction), Show (f Api), Show (f FlagSet), Show (f Float), Show (f UID), Show (f Bool)) => Show (PortData f)
+deriving instance (Read (f Direction), Read (f Api), Read (f FlagSet), Read (f Float), Read (f UID), Read (f Bool)) => Read (PortData f)
 
 -- Data that is neccesary for every port 
 data Port f = Port {
-    -- getName :: String,
+    -- The name we're using for the port. The Input data, this is generic, but
+    -- when we name the port it'll be the specific instance name. 
+    getName :: String,
     -- What is the port's UID? 
     getRawUID :: Maybe PortUID,
     getUID :: f UID,
@@ -168,9 +184,10 @@ deriving instance (Read (PortData f), Read (f Bool), Read (f UID)) => Read (Port
 
 -- | This can be either a block or a link, depending on where in the design
 --   it's being used. 
-data ElemData f = ElemData {
-    -- The Base Name of this element
-    -- getName :: String,
+data Elem f = Elem {
+    -- The name we're using for the elem. The Input data, this is generic, but
+    -- when we name the elem it'll be the specific instance name. 
+    getName :: String,
     -- The UID of this block or link
     getRawUID :: Maybe UID,
     getUID :: f UID,
@@ -180,10 +197,10 @@ data ElemData f = ElemData {
     getPorts :: Map String (Port f)
   }
 
-makeLensesWith abbreviatedFields ''ElemData
+makeLensesWith abbreviatedFields ''Elem
 
 -- This needs undecidable instances, and I'm too lazy to write the version
 -- that would work without it. 
-deriving instance (Show (Port f), Show (f Bool), Show (f UID)) => Show (ElemData f)
-deriving instance (Read (Port f), Read (f Bool), Read (f UID)) => Read (ElemData f)
+deriving instance (Show (Port f), Show (f Bool), Show (f UID)) => Show (Elem f)
+deriving instance (Read (Port f), Read (f Bool), Read (f UID)) => Read (Elem f)
 
