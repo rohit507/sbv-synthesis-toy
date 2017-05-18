@@ -19,23 +19,6 @@ type InputPortData  = PortData InputValue
 type InputPort      = Port InputValue
 type InputElem  = Elem InputValue
 
-{-
-testPort :: InputPort
-testPort = Port {
-  getName = "Test",
-  getUID = Unused,
-  getUsed = Unused,
-  getConnected = Unused,
-  getConnectedUID = Unused,
-  getData = Power {
-    getDirection = unnamed [Is Sink],
-    getVoltage = Constraints [(Nothing,Between 3.2 3.4)],
-    getCurrentDraw = Constraints [(Nothing,Between 1.2 2.4)],
-    getCurrentSupply = Unused
-  }
-}
--}
-
 -- | Given a list of unnamed constraints, convert them into an 
 --   InputValue
 unnamed :: SymWord a => [Constraint a] -> InputValue a
