@@ -23,7 +23,7 @@ type BlockUID     = UID
 type LinkPortUID  = UID
 type BlockPortUID = UID
 
--- * 
+-- * Names 
 
 -- | Used to keep track of the various names we assign to things
 newtype Name a = Name {getName :: String}

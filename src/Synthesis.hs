@@ -259,12 +259,13 @@ addEdges = do
 --   This should only be called once, after every other element of the 
 --   synthesis process is complete. 
 addFinalConstraints :: Symb ()
-addFinalConstraints 
-  =  instrumentPorts connections blockPorts
-  >> instrumentPorts revConnections linkPorts
+addFinalConstraints = do
+  instrumentPorts connections    blockPorts
+  instrumentPorts revConnections linkPorts
 
   where
-    -- 
+    -- | Take all the ports in one connection map and add the constraint
+    --   that ensures only one connection exists at a time. 
     instrumentPorts :: Lens' SymbModel (Map UID (Map UID (SymbValue Bool)))
                     -> Lens' SymbModel (Map UID SymbPort)
                     -> Symb ()
@@ -292,6 +293,8 @@ addFinalConstraints
            &&& (bnot (port^.connected.value) ==>
                     (port^.connectedUID.value .== literal (-1)))
 
+    -- | uncurried version of `portConstraint` so that I don't go 
+    --   over the 80 char limit in instrumentPorts
     portConstraint' :: (SymbPort, Map UID (SymbValue Bool)) -> Symb ()
     portConstraint' = uncurry portConstraint
 

@@ -106,7 +106,7 @@ justErr e Nothing = throwError e
 -- | Extract a value with a given name from the SMT output
 extractValue :: (Modelable m, SymWord a) => Name a -> Extract m (OutValue a)
 extractValue (Name s) = do
-  val <- (justErr ("Feiled to extract : " ++ s) . getModelValue s) <$> ask
+  val <- join $ justErr ("Failed to extract : " ++ s) . getModelValue s <$> ask
   return $ Named s (Identity val)
 
 -- | Extract a particular portdata from the SMT Output
