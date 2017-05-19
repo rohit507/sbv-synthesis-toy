@@ -2,16 +2,46 @@
 
 module Types where
 
-import Data.SBV
+import API
 
 import Data.Map (Map)
 import qualified Data.Map as Map
 
-import Control.Newtype
-
-import API
+import Data.SBV
 
 import Control.Lens
+
+-- * Type Synonyms 
+
+-- | Type that we use to represent unique IDs used in all sorts of places.
+type UID = Integer
+-- These are just to help disambiguate the types a bit since we use UIDs for 
+-- a variety of different things. 
+type PortUID      = UID
+type LinkUID      = UID
+type BlockUID     = UID
+type LinkPortUID  = UID
+type BlockPortUID = UID
+
+-- * 
+
+-- | Used to keep track of the various names we assign to things
+newtype Name a = Name {getName :: String}
+  deriving (Show, Read)
+
+-- | Type with both a name and an associated value of some sort.
+data Named f a = Named {getName :: String, getValue :: f a}
+  deriving (Show, Read)
+
+-- | Swap the inner data without changing the name. 
+swapNamed :: (f a -> g b) -> Named f a -> Named g b
+swapNamed f (Named n v) = Named n (f v)
+
+-- | Takes a named item, strips the actual value, and returns just the name.
+toName :: Named f a -> Name a
+toName Named{ getName} = Name getName
+
+-- * Constraints
 
 -- | The datatype that captures certain types of contraints and ambiguity.
 --
@@ -43,49 +73,6 @@ data Constraints f a where
 
 deriving instance (Show (f (Constraint a))) => Show (Constraints f a)
 
--- | Used to keep track of the various names we assign to things
-newtype Name a = Name {getName :: String}
-  deriving (Show, Read)
-
-makeLensesWith abbreviatedFields ''Name
-
-instance Newtype (Name a) String where
-  pack = Name
-  unpack = getName
-
--- | Type with both a name and an associated value of some sort.
-data Named f a = Named {getName :: String, getValue :: f a}
-  deriving (Show, Read)
-
-makeLensesWith abbreviatedFields ''Named
-
--- | Type with both a name and an associated value of some sort.
-data MaybeNamed f a = MaybeNamed {getName :: Maybe String, getValue :: f a}
-  deriving (Show, Read)
-
-makeLensesWith abbreviatedFields ''MaybeNamed
-
--- | Swap the inner data without changing the name. 
-swapNamed :: (f a -> g b) -> Named f a -> Named g b
-swapNamed f (Named n v) = Named n (f v)
-
--- | Takes a named item, strips the actual value, and returns just the name.
-toName :: Named f a -> Name a
-toName Named{ getName} = Name getName
-
--- | Takes a named item, strips the actual value, and returns just the name.
-toMaybeName :: MaybeNamed f a -> Maybe (Name a)
-toMaybeName MaybeNamed{ getName} = Name <$> getName
-
--- | Type that we use to represent unique IDs used in all sorts of places.
-type UID = Integer
--- These are just to help disambiguate the types a bit since we use UIDs for 
--- a variety of different things. 
-type PortUID      = UID
-type LinkUID      = UID
-type BlockUID     = UID
-type LinkPortUID  = UID
-type BlockPortUID = UID
 
 -- | This whole thing is meant to allow us to easily capture all the
 --   states used for each item in our actual design. 
@@ -150,7 +137,6 @@ data PortData f
       getCurrentSupply :: f Float
     }
 
-makeLensesWith abbreviatedFields ''PortData
 
 -- This needs undecidable instances, and I'm too lazy to write the version
 -- that would work without it. 
@@ -175,7 +161,6 @@ data Port f = Port {
     getPortData :: PortData f
   }
 
-makeLensesWith abbreviatedFields ''Port
 
 -- This needs undecidable instances, and I'm too lazy to write the version
 -- that would work without it. 
@@ -197,10 +182,15 @@ data Elem f = Elem {
     getPorts :: Map String (Port f)
   }
 
-makeLensesWith abbreviatedFields ''Elem
 
 -- This needs undecidable instances, and I'm too lazy to write the version
 -- that would work without it. 
 deriving instance (Show (Port f), Show (f Bool), Show (f UID)) => Show (Elem f)
 deriving instance (Read (Port f), Read (f Bool), Read (f UID)) => Read (Elem f)
 
+
+makeLensesWith abbreviatedFields ''Name
+makeLensesWith abbreviatedFields ''Named
+makeLensesWith abbreviatedFields ''PortData
+makeLensesWith abbreviatedFields ''Port
+makeLensesWith abbreviatedFields ''Elem

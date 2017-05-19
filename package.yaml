@@ -36,6 +36,7 @@ default-extensions:
   - PatternGuards
   - RankNTypes
   - ConstraintKinds
+  - OverloadedLists
 
 dependencies:
   - base >= 4.7 && < 5
@@ -55,3 +56,4 @@ executables:
       - Input
       - Synthesis
       - Extract
+      - Library

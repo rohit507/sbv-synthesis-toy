@@ -14,6 +14,7 @@ import qualified Data.Map as Map
 import Data.Functor.Identity
 
 import Data.Maybe
+import Data.Foldable
 
 import Data.SBV hiding (name)
 import qualified Data.SBV as SBV
@@ -30,9 +31,9 @@ import Control.Lens
 -- we named them as well as the actual ref
 type SymbValue = Named SBV
 type SymbPortData = PortData SymbValue
-type SymbPort = Port SymbValue
-type SymbElem = Elem SymbValue
-type SymbModel = Model SymbValue
+type SymbPort     = Port     SymbValue
+type SymbElem     = Elem     SymbValue
+type SymbModel    = Model    SymbValue
 
 -- | Our model of the current problem, It captures all the relevant data in 
 --   the system. The UID is just for convinience, it's only really useful when
@@ -68,8 +69,7 @@ newUID = uIDCounter <+= 1
 symbValue :: forall a. SymWord a => NamedInputValue a -> Symb (SymbValue a)
 symbValue (Named name Unused) = undefined
 symbValue (Named name (Constraints cs)) = do
-  sv <- lift $ free name
-  let nv = Named name sv
+  nv <- Named name <$> lift (free name)
   mapM_ (symbConstraint nv) cs
   return nv
   where
@@ -132,7 +132,7 @@ symbElem Elem{..} = Elem getName getRawUID
 addElem :: Lens' SymbModel (Map UID SymbElem)
         -> Lens' SymbModel (Map UID SymbPort)
         -> InputElem -- the actual input
-        -> (String -> SymbElem -> Symb ()) -- The closure for extra constraints
+        -> (SymbElem -> Symb ()) -- The closure for extra constraints
         -> Symb () -- The action that will generation the element
 addElem elemLens portLens input constrain = do
   sed <- symbElem =<< nameElem "" <$> initElem newUID input
@@ -143,9 +143,12 @@ addElem elemLens portLens input constrain = do
   elemLens %= Map.insert (fromJust $ sed ^. rawUID) sed
   -- Insert all the ports into the appropriate part of the model
   mapM_ (\ p -> portLens %= Map.insert (fromJust $ p ^. rawUID) p) $ sed ^. ports
-  -- TODO :: Here is where we'd add all the general plumbing
-  --   forall p in Ports. e.used == p.used
-  constrain (sed ^. name) sed
+  -- Add the constraint that ensures all the ports and the elem itself have
+  -- the same used state. (i.e. `forall p in ports. elem.used == p.used`) 
+  lift . namedConstraint (sed ^. name ++ " : Used Propagation") . bAnd $
+    map (\ p -> sed^.used.value .== p^.used.value) (Map.elems $ sed ^. ports)
+  -- Add the constraints given by the user
+  constrain sed
 
 
 -- | Add a block to the design, see `addElem` for a more detailed breakdown of
@@ -154,14 +157,12 @@ addElem elemLens portLens input constrain = do
 --   We also add the links neccesary for every block, which means that you
 --   have to ensure that all the links are added before the blocks. 
 --   I'd do it in a more robust way, but this is fine for now.
-addBlock :: InputElem -> (String -> SymbElem -> Symb ())
-         -> Symb ()
+addBlock :: InputElem -> (SymbElem -> Symb ()) -> Symb ()
 addBlock = addElem blocks blockPorts
 
 -- | Add a link to the design, see `addElem` for a more detailed breakdown of
 --   inputs and the like. 
-addLink :: InputElem -> (String -> SymbElem -> Symb ())
-         -> Symb ()
+addLink :: InputElem -> (SymbElem -> Symb ()) -> Symb ()
 addLink = addElem links linkPorts
 
 -- | Adds any edges that might be missing for any element in our design, 
@@ -191,42 +192,49 @@ addEdges = do
       -- it works like `^."` but you have to enforce that the field actually 
       -- exists yourself. 
       lift . namedConstraint cName $ connVar^.value ==> bAnd [
-        a^.portData.direction.value  .== b^.portData.direction.value,
-        a^?!portData.api.value       .== b^?!portData.api.value,
-        a^?!portData.apiFlags.value  .== b^?!portData.apiFlags.value,
-        a^?!portData.apiUID.value    .== b^?!portData.apiUID.value,
-        a^?!portData.hostUID.value   .== b^?!portData.hostUID.value,
-        a^?!portData.isGPIO.value    .== b^?!portData.isGPIO.value]
+        fieldEq a b direction,
+        fieldEq a b api,
+        fieldEq a b apiFlags,
+        fieldEq a b apiUID,
+        fieldEq a b hostUID,
+        fieldEq a b isGPIO]
     addEdge a@Port{ getPortData = ad@DigitalIO{}} b@Port{ getPortData = bd@DigitalIO{}} = do
       connVar <- addEdgeHelper a b
       let cName = connVar^.name ++ " : Connected w/ Eq Types"
       lift . namedConstraint cName $ connVar^.value ==> bAnd [
-        a^.portData.direction.value      .== b^.portData.direction.value,
-        a^?!portData.zeroLevel.value     .== b^?!portData.zeroLevel.value,
-        a^?!portData.oneLevel.value      .== b^?!portData.oneLevel.value,
-        a^?!portData.zeroThreshold.value .== b^?!portData.zeroThreshold.value,
-        a^?!portData.oneThreshold.value  .== b^?!portData.oneThreshold.value,
-        a^?!portData.api.value           .== b^?!portData.api.value,
-        a^?!portData.apiFlags.value      .== b^?!portData.apiFlags.value,
-        a^?!portData.apiUID.value        .== b^?!portData.apiUID.value]
+        fieldEq a b direction,
+        fieldEq a b zeroLevel,
+        fieldEq a b oneLevel,
+        fieldEq a b zeroThreshold,
+        fieldEq a b oneThreshold,
+        fieldEq a b api,
+        fieldEq a b apiFlags,
+        fieldEq a b apiUID]
     addEdge a@Port{ getPortData = ad@Power{}} b@Port{ getPortData = bd@Power{}} = do
       connVar <- addEdgeHelper a b
       let cName = connVar^.name ++ " : Connected w/ Eq Types"
       lift . namedConstraint cName $ connVar^.value ==> bAnd [
-        a^.portData.direction.value      .== b^.portData.direction.value,
-        a^?!portData.voltage.value       .== b^?!portData.voltage.value,
-        a^?!portData.currentDraw.value   .== b^?!portData.currentDraw.value,
-        a^?!portData.currentSupply.value .== b^?!portData.currentSupply.value]
+        fieldEq a b direction,
+        fieldEq a b voltage,
+        fieldEq a b currentDraw,
+        fieldEq a b currentSupply]
+    -- We don't need to create an edge if their PortData constructors don't
+    -- match, since those ports simply cannot be connected. 
     addEdge _ _ = return ()
+
+    -- | constructs the term for checking whether two fields in the PortData
+    --   are equal given the two ports and the lens to the field. 
+    fieldEq :: SymbPort -> SymbPort -> Fold SymbPortData (SymbValue a) -> SBV Bool
+    fieldEq a b lens = a^?!portData.lens.value .== b^?!portData.lens.value
 
     -- | Assumes that the edge isn't in either map already. Does not try to 
     --   add type equality checking.
     addEdgeHelper :: SymbPort -> SymbPort -> Symb (SymbValue Bool)
     addEdgeHelper bPort lPort = do
-      let connName = bPort ^. name ++ " <-> " ++ lPort ^. name
-          consNameT = connName ++ " : Connected"
-      connVar <- lift $ free connName
-      let ncv = Named connName connVar
+      let connectionName = bPort ^. name ++ " <-> " ++ lPort ^. name
+          constraintName = connectionName ++ " : Connected"
+      connVar <- lift $ free connectionName
+      let ncv = Named connectionName connVar
           bpUID = fromJust $ bPort^.rawUID
           lpUID = fromJust $ lPort^.rawUID
           tf = connVar ==> bAnd [
@@ -237,7 +245,7 @@ addEdges = do
                   -- If we're connected, both ports have the UID of the other.
                   bPort^.connectedUID.value .== literal lpUID,
                   lPort^.connectedUID.value .== literal bpUID]
-      lift $ namedConstraint consNameT tf
+      lift $ namedConstraint constraintName tf
       connections %= Map.unionWith Map.union
          (Map.singleton bpUID $ Map.singleton lpUID ncv)
       revConnections %= Map.unionWith Map.union
@@ -245,23 +253,45 @@ addEdges = do
       return ncv
 
 
+-- | Constraints like ensuring that ports can only be connected to other
+--   ports require global information, so we add them im last.
+--
+--   This should only be called once, after every other element of the 
+--   synthesis process is complete. 
+addFinalConstraints :: Symb ()
+addFinalConstraints 
+  =  instrumentPorts connections blockPorts
+  >> instrumentPorts revConnections linkPorts
 
--- ## Library.hs ##
--- <smattering of parts>
+  where
+    -- 
+    instrumentPorts :: Lens' SymbModel (Map UID (Map UID (SymbValue Bool)))
+                    -> Lens' SymbModel (Map UID SymbPort)
+                    -> Symb ()
+    instrumentPorts connLens portLens =
+      traverse_ portConstraint' =<< attachSymbPort portLens =<< use connLens
 
--- ## Specification.hs ##
--- genSpec
--- shrinkSpec
+    -- Just lookup every UID in the map and add the actual port information
+    attachSymbPort :: Lens' SymbModel (Map UID SymbPort) -> Map UID a
+                   -> Symb (Map UID (SymbPort,a))
+    attachSymbPort lens = Map.traverseWithKey
+      (\ uid a -> (,a) . fromJust <$> uses lens (Map.lookup uid))
 
--- ## Problem ##
--- runProblem
+    -- | Given a set of connections and their boolean flag variables, generate
+    --   the constraint that only one is connected.
+    onlyOneConnected :: Map UID (SymbValue Bool) -> SBV Bool
+    onlyOneConnected = flip pbExactly 1 . Map.elems . fmap (^.value)
 
--- ## AllSet ##
--- constrainTopology
--- allDesigns
+    -- | With a portData and a set of connections generate the connected 
+    --   and unconnected constraints.
+    portConstraint :: SymbPort -> Map UID (SymbValue Bool) -> Symb ()
+    portConstraint port conns = lift $ namedConstraint consName constraint
+      where
+        consName = port^.name ++ " : Connected UID Consistency"
+        constraint = (port^.connected.value ==> onlyOneConnected conns)
+           &&& (bnot (port^.connected.value) ==>
+                    (port^.connectedUID.value .== literal (-1)))
 
--- ## Search ##
--- searchSpec
+    portConstraint' :: (SymbPort, Map UID (SymbValue Bool)) -> Symb ()
+    portConstraint' = uncurry portConstraint
 
--- ## Main ## 
--- <various test cases>

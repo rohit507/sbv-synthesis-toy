@@ -21,17 +21,20 @@ import Control.Lens
 -- needed to retrive them from one of SBV's models 
 type RefValue = Name
 type RefPortData = PortData RefValue
-type RefPort = Port RefValue
-type RefElem = Elem RefValue
-type RefModel = Model RefValue
+type RefPort     = Port     RefValue
+type RefElem     = Elem     RefValue
+type RefModel    = Model    RefValue
 
 -- The type of values as they exist outside the SBV monad, as the strings
 -- needed to retrive them from one of SBV's models 
 type OutValue = Named Identity
 type OutPortData = PortData OutValue
-type OutPort = Port OutValue
-type OutElem = Elem OutValue
-type OutModel = Model OutValue
+type OutPort     = Port     OutValue
+type OutElem     = Elem     OutValue
+type OutModel    = Model    OutValue
+
+-- | The type of the monad in which we reconstruct values.
+type Extract m = ReaderT m (Either String)
 
 -- | Given a portdata block with names and something else, get one with 
 --   only names. 
@@ -95,9 +98,6 @@ stripModel Model{..} = Model{
     getRevConnections = fmap (fmap toName) getRevConnections
   }
 
--- | The type of the monad in which we reconstruct values.
-type Extract m = ReaderT m (Either String)
-
 -- | Convert a maybe into an error in the appropriate monad
 justErr :: MonadError e m => e -> Maybe a -> m a
 justErr _ (Just a) = return a
@@ -106,8 +106,7 @@ justErr e Nothing = throwError e
 -- | Extract a value with a given name from the SMT output
 extractValue :: (Modelable m, SymWord a) => Name a -> Extract m (OutValue a)
 extractValue (Name s) = do
-  model <- ask 
-  val <- justErr ("Feiled to extract : " ++ s) $ getModelValue s model
+  val <- (justErr ("Feiled to extract : " ++ s) . getModelValue s) <$> ask
   return $ Named s (Identity val)
 
 -- | Extract a particular portdata from the SMT Output
@@ -162,6 +161,10 @@ extractModel Model{..} = Model getUIDCounter
 
 -- | Wrapper type for a model that should keep us from having to
 --   constantly recalculate the dictionary
+--
+--   TODO :: There has got to be a better way to do this :/ the standard 
+--           interface just has the dictionary being recreated every time I want
+--           get a value from it.
 data ModelableWrapper a = MW{
     model  :: a,
     dict   :: Map String SBV.CW,
