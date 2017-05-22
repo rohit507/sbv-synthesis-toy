@@ -49,6 +49,7 @@ boxes/*
 *.tmp.*
 *.png
 *.svg
+.shake/*
 
 ########
 # IDEs #

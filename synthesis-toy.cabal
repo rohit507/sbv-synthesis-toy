@@ -35,6 +35,7 @@ executable synthesis-toy
     , containers
     , newtype
     , lens
+    , shake
   other-modules:
       Types
       API

@@ -77,7 +77,7 @@ deriving instance (Show (f (Constraint a))) => Show (Constraints f a)
 -- | This whole thing is meant to allow us to easily capture all the
 --   states used for each item in our actual design. 
 --
---   PortData (Constraints (String,)) / Port (Constraints (String,)) / Elem (Constraints (String,)) = 
+--   PortData (Constraints (String,)) / Port (Constraints (String,)) /
 --      Basic sets of constraints over the values in each type of object, 
 --      along with the names we'll use for those constraints. 
 --
@@ -140,8 +140,10 @@ data PortData f
 
 -- This needs undecidable instances, and I'm too lazy to write the version
 -- that would work without it. 
-deriving instance (Show (f Direction), Show (f Api), Show (f FlagSet), Show (f Float), Show (f UID), Show (f Bool)) => Show (PortData f)
-deriving instance (Read (f Direction), Read (f Api), Read (f FlagSet), Read (f Float), Read (f UID), Read (f Bool)) => Read (PortData f)
+deriving instance (Show (f Direction), Show (f Api), Show (f FlagSet),
+  Show (f Float), Show (f UID), Show (f Bool)) => Show (PortData f)
+deriving instance (Read (f Direction), Read (f Api), Read (f FlagSet),
+  Read (f Float), Read (f UID), Read (f Bool)) => Read (PortData f)
 
 -- Data that is neccesary for every port 
 data Port f = Port {
@@ -164,8 +166,10 @@ data Port f = Port {
 
 -- This needs undecidable instances, and I'm too lazy to write the version
 -- that would work without it. 
-deriving instance (Show (PortData f), Show (f Bool), Show (f UID)) => Show (Port f)
-deriving instance (Read (PortData f), Read (f Bool), Read (f UID)) => Read (Port f)
+deriving instance (Show (PortData f), Show (f Bool), Show (f UID))
+  => Show (Port f)
+deriving instance (Read (PortData f), Read (f Bool), Read (f UID))
+  => Read (Port f)
 
 -- | This can be either a block or a link, depending on where in the design
 --   it's being used. 

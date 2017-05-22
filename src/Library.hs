@@ -78,7 +78,7 @@ type PortValEqType = forall a. (SymWord a)
 mkElem :: String -> [(String,InputPort)] -> InputElem
 mkElem name ports = Elem {
   getName = name,
-  getRawUID = undefined,
+  getRawUID = Nothing,
   getUID = undefined,
   getUsed = undefined,
   getPorts = Map.fromList ports
@@ -88,7 +88,7 @@ mkElem name ports = Elem {
 mkPort :: String -> InputPortData -> InputPort
 mkPort name portData = Port {
   getName = name,
-  getRawUID = undefined,
+  getRawUID = Nothing,
   getUID = undefined,
   getUsed = undefined,
   getConnected = undefined,

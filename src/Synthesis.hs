@@ -60,6 +60,19 @@ deriving instance (Read (Elem f), Read (Port f), Read (f Bool)) => Read (Model f
 --   internal state of the Symbolic Monad as we build things out. 
 type Symb = StateT (Model (Named SBV)) Symbolic
 
+-- | Convert a computation in Symb to one in Symbolic that returns the 
+--   model that we built up. 
+runSymb :: Symb a -> Symbolic (a, SymbModel)
+runSymb = flip runStateT Model{
+    getUIDCounter = 0,
+    getLinks = mempty,
+    getBlocks = mempty,
+    getLinkPorts = mempty,
+    getBlockPorts = mempty,
+    getConnections = mempty,
+    getRevConnections = mempty
+  }
+
 -- | Grab a new UID and update the counter as needed.
 newUID :: Symb UID
 newUID = uIDCounter <+= 1
