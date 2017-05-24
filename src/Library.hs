@@ -26,6 +26,12 @@ is a = unnamed [Is a]
 flags :: (Enum a, Bounded a) => [a] -> InputValue FlagSet
 flags = unnamed . (:[]) . SetFlags . toFlags . map (,True)
 
+-- Shorthand for collecting a set of flags that must be on
+onlyFlags :: (Eq a, Enum a, Bounded a) => [a] -> InputValue FlagSet
+onlyFlags a = unnamed . (:[]) . SetFlags . toFlags . map (\f -> (f, f `elem` a))
+  $ enumFromTo minBound maxBound
+
+
 -- Shorthand for having no requirements at all
 unknown :: SymWord a => InputValue a
 unknown = unnamed []
@@ -118,8 +124,8 @@ testSpec :: Symb ()
 testSpec = addBlock elem constraints
   where
 
-    elem = mkElem "specification" [
-          ("req", mkPort "testRequirement" SW{
+    elem = mkElem "spec" [
+          ("req", mkPort "testReq" SW{
                 getDirection = is Sink,
                 getApi = is LED,
                 getApiFlags = flags [LRed,LBright],
@@ -143,15 +149,15 @@ swLink = addLink elem constraints
 
   where
 
-    elem = mkElem" swLink" [
-          ("sink", mkPort "testRequirement" SW{
+    elem = mkElem "swLink" [
+          ("sink", mkPort "apiUser" SW{
                 getDirection = is Sink,
                 getApi = unknown,
                 getApiFlags = unknown,
                 getApiUID = unknown,
                 getHostUID = unknown,
                 getIsGPIO = unknown}),
-          ("source", mkPort "testRequirement" SW{
+          ("source", mkPort "apiProducer" SW{
                 getDirection = is Source,
                 getApi = unknown,
                 getApiFlags = unknown,
@@ -184,10 +190,10 @@ testSource = addBlock elem constraints
   where
 
     elem = mkElem "ledSource" [
-          ("req",mkPort "testRequirement" SW {
+          ("req",mkPort "testSupp" SW {
                 getDirection = is Source,
                 getApi = is LED,
-                getApiFlags = flags [LRed,LBright],
+                getApiFlags = onlyFlags [LRed,LBright],
                 getApiUID = unknown,
                 getHostUID = unknown,
                 getIsGPIO = is False})]

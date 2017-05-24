@@ -23,57 +23,57 @@ data Api = LED | Button | Thermometer | Motor | LightSensor | DistanceSensor
   | Fan | Display
   deriving (Eq, Ord, Enum, Show, Read, Data, SymWord, HasKind, SatModel)
 
--- | We end up storing various flags over the API as a bitvector. 
-type FlagSet = Int32
-
 -- Specific flags we use for LEDs
 data LEDFlags
   = LRed | LGreen | LBlue | LYellow | LPurple | LCyan | LWhite | LRGB -- Colors
   | LDim | LBright -- Brightness 
   | LSOT | LDIP | LOther -- Size of the actual LED
-  deriving (Enum, Bounded, Show, Read)
+  deriving (Eq, Enum, Bounded, Show, Read)
 
 -- Specific Flags we user for buttons 
 data ButtonFlags
   = BRed | BGreen | BBlue | BYellow | BPurple | BCyan | BWhite -- Colors
   | BLit -- Internal Lighting
   | BPushbutton | BKey | BDome | BTrigger -- The Style of the button
-  deriving (Enum, Bounded, Show, Read)
+  deriving (Eq, Enum, Bounded, Show, Read)
 
 -- Specific Flags we user for buttons 
 data ThermometerFlags
   = TWaterproof | TRanged -- Properties the thermometer may have
-  deriving (Enum, Bounded, Show, Read)
+  deriving (Eq, Enum, Bounded, Show, Read)
 
 -- Specific Flags we use for Motors
 data MotorFlags
   = MStepper | MServo | MBrushed | MBrushless -- Type of motor this is
-  deriving (Enum, Bounded, Show, Read)
+  deriving (Eq, Enum, Bounded, Show, Read)
 
 -- Specific flags for LightSensors 
 data LightSensorFlags
   = LSBrightness | LSColor -- Type of sensing it can do
   | LSInfrared | LSVisible | LSNoSource -- Type of built in light source
-  deriving (Enum, Bounded, Show, Read)
+  deriving (Eq, Enum, Bounded, Show, Read)
 
 -- Specific flags for LightSensors 
 data DistanceSensorFlags
   = DShort | DSMed | DSLong -- Range
   | DSUltrasonic | DSTimeOfFlight | DSReflective | DSLIDAR | DSStereo -- Mode of operation
-  deriving (Enum, Bounded, Show, Read)
+  deriving (Eq, Enum, Bounded, Show, Read)
 
 -- Specific flags for Fans
 data FanFlags
   = FSmall | FMed | FLarge -- Size
   | FHighPressure | FLowPressure -- Pressure 
   | FHighThroughput | FLowThroughput -- Volume of air moved per unit time
-  deriving (Enum, Bounded, Show, Read)
+  deriving (Eq, Enum, Bounded, Show, Read)
 
 -- Specific flags for displays 
 data DisplayFlags
   = DCharecter | DNumerical | DGraphical -- Type
   | DBlackAndWhite | DColor | DLightOnDark | DDarkOnLight -- Color
-  deriving (Enum, Bounded, Show, Read)
+  deriving (Eq, Enum, Bounded, Show, Read)
+
+-- | We end up storing various flags over the API as a bitvector. 
+type FlagSet = Int32
 
 -- Get all the valid flags from the bitvector we use to store them.
 fromFlags :: (Enum a, Bounded a) => FlagSet -> [a]
