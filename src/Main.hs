@@ -1,4 +1,3 @@
-
 {-|
 Module      : Main
 Description : We keep the code that defines the application we create.
@@ -14,6 +13,8 @@ commentary with @some markup@.
 |-}
 
 module Main where
+
+import ConstraintExpression
 
 main :: IO ()
 main = putStrLn "Hello World"

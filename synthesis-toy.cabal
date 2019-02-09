@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4e9d6890fb6502c3b92ad5378929257108b084a39f6f3a61cfc0ff75c1e64343
+-- hash: 019652c5181d11d547e1fe2ae025c1d3a00812c328a112d9fd3f6c60013b8f25
 
 name:           synthesis-toy
 version:        0.1.0.0
@@ -28,7 +28,7 @@ executable synthesis-toy
   main-is: Main.hs
   hs-source-dirs:
       src
-  default-extensions: GADTs FlexibleContexts FlexibleInstances MultiParamTypeClasses DeriveDataTypeable DeriveAnyClass DeriveGeneric DeriveFunctor DuplicateRecordFields RecordWildCards NamedFieldPuns TypeApplications ApplicativeDo ViewPatterns TupleSections StandaloneDeriving ExplicitForAll ScopedTypeVariables TemplateHaskell FunctionalDependencies PatternGuards RankNTypes ConstraintKinds OverloadedLists
+  default-extensions: GADTs FlexibleContexts FlexibleInstances MultiParamTypeClasses DeriveDataTypeable DeriveAnyClass DeriveGeneric DeriveFunctor DuplicateRecordFields RecordWildCards NamedFieldPuns TypeApplications ApplicativeDo ViewPatterns TupleSections StandaloneDeriving ExplicitForAll ScopedTypeVariables TemplateHaskell FunctionalDependencies PatternGuards RankNTypes KindSignatures ConstraintKinds OverloadedLists
   build-depends:
       base >=4.7 && <5
     , containers
@@ -38,10 +38,7 @@ executable synthesis-toy
     , sbv
     , shake
   other-modules:
+      ConstraintExpression
       Types
-      API
-      Input
-      Synthesis
-      Extract
-      Library
+      Paths_synthesis_toy
   default-language: Haskell2010

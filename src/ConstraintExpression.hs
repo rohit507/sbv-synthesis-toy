@@ -1,6 +1,6 @@
 
 {-|
-Module      : ConstraintExpr
+Module      : ConstraintExpression
 Description : AST for arbitrary z3 compatible constraints
 Copyright   : (c) Some Guy, 2013
                   Someone Else, 2014
@@ -15,7 +15,7 @@ and linear equations.
 
 |-}
 
-module ConstraintExpr where
+module ConstraintExpression where
 
 -- * Design Motivation
 --

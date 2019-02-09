@@ -52,10 +52,3 @@ executables:
   synthesis-toy:
     source-dirs:      src
     main:             Main.hs
-    other-modules:
-      - Types
-      - API
-      - Input
-      - Synthesis
-      - Extract
-      - Library
