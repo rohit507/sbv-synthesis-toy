@@ -1,34 +1,19 @@
+
+{-|
+Module      : Main
+Description : We keep the code that defines the application we create.
+Copyright   : (c) Some Guy, 2013
+                  Someone Else, 2014
+License     : GPL-3
+Maintainer  : sample@email.com
+Stability   : experimental
+Portability : POSIX
+
+Here is a longer description of this module, containing some
+commentary with @some markup@.
+|-}
+
 module Main where
 
-import Types
-import Synthesis
-import Extract
-import Library
-
-import Data.SBV
-
-import Development.Shake
-import Development.Shake.FilePath
-
-import Control.Monad
-
 main :: IO ()
-main = shakeArgs shakeOptions $
-  phony "simpletest" $
-    liftIO $ print <=< satWith z3{getUnsatCore=True} $ do
-      (r,model) <- runSymb $ do
-        -- Add all of our parts, incl duplicates
-        testSpec
-        swLink
-        testSource
-        -- Instrument
-        addEdges
-        -- Finish up
-        addFinalConstraints
-        return . literal $ True
-      return r
-
--- Primary targets are going to various problems, with a specific set of 
--- possible flags that we can use to run them as follows: 
---
---  - With iteration, with 
+main = putStrLn "Hello World"

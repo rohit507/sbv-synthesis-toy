@@ -1,6 +1,8 @@
--- This file has been generated from package.yaml by hpack version 0.17.0.
+-- This file has been generated from package.yaml by hpack version 0.28.2.
 --
 -- see: https://github.com/sol/hpack
+--
+-- hash: 4e9d6890fb6502c3b92ad5378929257108b084a39f6f3a61cfc0ff75c1e64343
 
 name:           synthesis-toy
 version:        0.1.0.0
@@ -15,7 +17,6 @@ license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
 cabal-version:  >= 1.10
-
 extra-source-files:
     README.md
 
@@ -29,12 +30,12 @@ executable synthesis-toy
       src
   default-extensions: GADTs FlexibleContexts FlexibleInstances MultiParamTypeClasses DeriveDataTypeable DeriveAnyClass DeriveGeneric DeriveFunctor DuplicateRecordFields RecordWildCards NamedFieldPuns TypeApplications ApplicativeDo ViewPatterns TupleSections StandaloneDeriving ExplicitForAll ScopedTypeVariables TemplateHaskell FunctionalDependencies PatternGuards RankNTypes ConstraintKinds OverloadedLists
   build-depends:
-      base >= 4.7 && < 5
-    , sbv
-    , mtl
+      base >=4.7 && <5
     , containers
-    , newtype
     , lens
+    , mtl
+    , newtype
+    , sbv
     , shake
   other-modules:
       Types
