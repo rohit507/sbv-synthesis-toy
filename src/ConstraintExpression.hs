@@ -51,22 +51,22 @@ module ConstraintExpr where
 data CExpr sym a where
 
   -- | Numeric Operations
-  (:+) :: CNum a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s a)
-  (:-) :: CNum a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s a)
+  (:+) :: CNum s a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s a)
+  (:-) :: CNum s a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s a)
 
   -- | Sum of all the variables in the list
-  Sum :: CNum a => [CExpr s (s a)] -> CExpr s (s a)
+  Sum :: CNum s a => [CExpr s (s a)] -> CExpr s (s a)
 
   -- | Since we are limiting ourselves to linear operations, one parameter of
   --   every multiplication operation should be a constant value.
   --
   --   We are not creating an operator for division since I don't want to
   --   deal with that bullshit.
-  (:*) :: CNum a => a -> CExpr s (s a) -> CExpr s (s a)
+  (:*) :: CNum s a => a -> CExpr s (s a) -> CExpr s (s a)
 
   -- | Equality Operations
-  (:==) :: CEq a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s Bool)
-  (:/=) :: CEq a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s Bool)
+  (:==) :: CEq s a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s Bool)
+  (:/=) :: CEq s a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s Bool)
 
   -- | Boolean Operations
   (:!) :: CExpr s (s Bool) -> CExpr s (s Bool)
@@ -90,16 +90,16 @@ data CExpr sym a where
   Count :: [CExpr s (s Bool)] -> CExpr s (s Int)
 
   -- | Ordering Operations
-  (:<) :: COrd a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s Bool)
-  (:<=) :: COrd a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s Bool)
-  (:>) :: COrd a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s Bool)
-  (:>=) :: COrd a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s Bool)
+  (:<) :: COrd s a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s Bool)
+  (:<=) :: COrd s a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s Bool)
+  (:>) :: COrd s a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s Bool)
+  (:>=) :: COrd s a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s Bool)
 
   -- | Maximum of the set
-  Max :: COrd a => [CExpr s (s a)] -> CExpr s (s a)
+  Max :: COrd s a => [CExpr s (s a)] -> CExpr s (s a)
 
   -- | Minimum of the set
-  Min :: COrd a => [CExpr s (s a)] -> CExpr s (s a)
+  Min :: COrd s a => [CExpr s (s a)] -> CExpr s (s a)
 
   -- | This lets us store a name for any expression.
   IsNamed :: String -> CExpr s (s a) -> CExpr s (s a)
@@ -118,21 +118,16 @@ data CExpr sym a where
 -- same restrictions.
 
 -- | Shadow 'Eq' typeclass
-class CEq a
+class CEq (s :: * -> *)  a
 
 -- | Shadow 'CNum' typeclass
-class CNum a
+class CNum (s :: * -> *) a
 
 -- | Shadow 'Ord' typeclass
-class COrd a
+class COrd (s :: * -> *) a
 
 -- | Shadow 'Real' typeclass
-class CReal a
-
--- | Class for symbolic variables
-class CVar a
-
-
+class CReal (s :: * -> *) a
 
 {-
 

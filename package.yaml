@@ -35,6 +35,7 @@ default-extensions:
   - FunctionalDependencies
   - PatternGuards
   - RankNTypes
+  - KindSignatures
   - ConstraintKinds
   - OverloadedLists
 
