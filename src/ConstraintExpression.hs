@@ -17,6 +17,8 @@ and linear equations.
 
 module ConstraintExpression where
 
+import Data.Functor.Foldable (Fix)
+
 -- * Design Motivation
 --
 -- We want to be able to:
@@ -30,104 +32,65 @@ module ConstraintExpression where
 -- (See https://www.tweag.io/posts/2018-02-05-free-monads.html ).
 -- Which allow us to store complex expressions and then run various
 -- interpreters/algebras over those expressions.
+
+-- | Expression Name
 --
--- To slightly complicate matters, we use Generalized Algebraic DataTypes (GADTs)
--- to add an extra layer of type safety to the process
--- (See http://jstimpfle.de/blah/free-monads-gadts.html ).
+--   We use a type synonym/type alias to say that (for now) we are using
+--   'String's as names for types. In the future you may wish to change it
+--   and when you do, the compiler will complain about the generated errors,
+--   making it easy to find and fix them.
+type ExprName = String
 
--- | Constraint Expressions
+-- | Comment
 --
---   Datatype for type safe expressions of contraints. We use a set of
---   typeclasses to restrict the system to types that are usable in the context
---   of SMT Solving.
+--   We use a type synonym/type alias to say that (for now) we are using
+--   'String's to store comments.
+type Comment = String
+
+-- | Constraint Expression
 --
---   the first type operator 'sym :: Type -> Type' is a wrapper that says
---   "Hey, I'm not an actual 'a'! I'm a symbolic version of an 'a'."
---   Wherever you define for 'sym' one should be extra careful to ensure that
---   you only allow the user to access the constructors for types that you can
---   actually handle symbolically.
+data CExprF f
+  = Add f f               -- ^ Addition
+  | Sub f f               -- ^ Subtraction
+  | Negate f              -- ^ Unary Negation
+  | Mult f f              -- ^ Multiplication
+  | Sum [f]               -- ^ Sum of all elements in a list
+  | Eq f f                -- ^ Equality
+  | Neq f f               -- ^ Inequality
+  | LT f f                -- ^ Less Than
+  | LTE f f               -- ^ Less Than or Equal To
+  | GT f f                -- ^ Greater Than
+  | GTE f f               -- ^ Greater Than or Equal To
+  | Not f                 -- ^ Boolean Not
+  | Xor f f               -- ^ Boolean Xor
+  | And f f               -- ^ Boolean And
+  | Or f f                -- ^ Boolean Or
+  | Implies f f           -- ^ Logical Implication
+  | Equals f f            -- ^ Logical Equality
+  | All [f]               -- ^ Are all the elements of the list True?
+  | Any [f]               -- ^ Are any of the elements of the list True?
+  | Count [f]             -- ^ How many elements in the list are True?
+  | Max [f]               -- ^ What is the value of the largest element in the list?
+  | Min [f]               -- ^ What is the value of the smallest element in the list?
+  | IsNamed f ExprName    -- ^ Attaches a name to an expression
+  | WithComment f Comment -- ^ Attaches a comment to an expression
+  deriving (Show, Read, Functor, Foldable, Traversable)
+
+-- | Constraint Expression
 --
---   All infix type constructors must start with a colon.
-data CExpr sym a where
-
-  -- | Numeric Operations
-  (:+) :: CNum s a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s a)
-  (:-) :: CNum s a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s a)
-
-  -- | Sum of all the variables in the list
-  Sum :: CNum s a => [CExpr s (s a)] -> CExpr s (s a)
-
-  -- | Since we are limiting ourselves to linear operations, one parameter of
-  --   every multiplication operation should be a constant value.
-  --
-  --   We are not creating an operator for division since I don't want to
-  --   deal with that bullshit.
-  (:*) :: CNum s a => a -> CExpr s (s a) -> CExpr s (s a)
-
-  -- | Equality Operations
-  (:==) :: CEq s a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s Bool)
-  (:/=) :: CEq s a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s Bool)
-
-  -- | Boolean Operations
-  (:!) :: CExpr s (s Bool) -> CExpr s (s Bool)
-  (:^) :: CExpr s (s Bool) -> CExpr s (s Bool) -> CExpr s (s Bool)
-  (:&&) :: CExpr s (s Bool) -> CExpr s (s Bool) -> CExpr s (s Bool)
-  (:||) :: CExpr s (s Bool) -> CExpr s (s Bool) -> CExpr s (s Bool)
-
-  -- | Logical Implication
-  (:=>) :: CExpr s (s Bool) -> CExpr s (s Bool) -> CExpr s (s Bool)
-
-  -- | Logical Equality
-  (:<=>) :: CExpr s (s Bool) -> CExpr s (s Bool) -> CExpr s (s Bool)
-
-  -- | All of the following in the list must be true
-  All :: [CExpr s (s Bool)] -> CExpr s (s Bool)
-
-  -- | Any of the following must be true
-  Any :: [CExpr s (s Bool)] -> CExpr s (s Bool)
-
-  -- | Count how many are true
-  Count :: [CExpr s (s Bool)] -> CExpr s (s Int)
-
-  -- | Ordering Operations
-  (:<) :: COrd s a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s Bool)
-  (:<=) :: COrd s a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s Bool)
-  (:>) :: COrd s a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s Bool)
-  (:>=) :: COrd s a => CExpr s (s a) -> CExpr s (s a) -> CExpr s (s Bool)
-
-  -- | Maximum of the set
-  Max :: COrd s a => [CExpr s (s a)] -> CExpr s (s a)
-
-  -- | Minimum of the set
-  Min :: COrd s a => [CExpr s (s a)] -> CExpr s (s a)
-
-  -- | This lets us store a name for any expression.
-  IsNamed :: String -> CExpr s (s a) -> CExpr s (s a)
-
-  -- | This lets us add a comment to any particular expression, it's mostly
-  --   an aid with debugging. In general most
-  WithComment :: CExpr s (s a) -> String -> CExpr s (s a)
-
--- * Shadow Typeclasses
+--   In order to turn 'CExprF' into a traditional AST we take its fixed point
+--   (i.e. something equivalent to @CExprF (CExprF (CExprF ( ...@).
+--   In Haskell we do that using the type:
+--   > newtype Fix f = Fix (f (Fix f))
 --
--- The classes for types with equality (Eq), integers (Num),
--- ordering (Ord), and reals (Real) require us to implement functions that
--- don't make much sense in the context of a constraint expression.
+--   This means that, as long as we unwrap the 'Fix' constructor repeatedly,
+--   we can have infinitely nested 'CExprF's.
 --
--- The shadow classes below give us alternates that don't have those
--- same restrictions.
-
--- | Shadow 'Eq' typeclass
-class CEq (s :: * -> *)  a
-
--- | Shadow 'CNum' typeclass
-class CNum (s :: * -> *) a
-
--- | Shadow 'Ord' typeclass
-class COrd (s :: * -> *) a
-
--- | Shadow 'Real' typeclass
-class CReal (s :: * -> *) a
+--   If that unwrapping seems onerous don't worry, we're going to use tools
+--   from the 'recursion-schemes' package to automate much of it.
+--
+--   That said, we may also be wrapping our 'CExpr's in other types, to
+--   add things like free variables and what
 
 {-
 

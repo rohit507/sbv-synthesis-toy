@@ -21,6 +21,7 @@ default-extensions:
   - DeriveAnyClass
   - DeriveGeneric
   - DeriveFunctor
+  - DeriveTraversable
   - DuplicateRecordFields
   - RecordWildCards
   - NamedFieldPuns
@@ -41,12 +42,7 @@ default-extensions:
 
 dependencies:
   - base >= 4.7 && < 5
-  - sbv
-  - mtl
-  - containers
-  - newtype
-  - lens
-  - shake
+  - recursion-schemes
 
 executables:
   synthesis-toy:
