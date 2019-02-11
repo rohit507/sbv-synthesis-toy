@@ -15,6 +15,7 @@ cabal-dev
 .hsenv
 .cabal-sandbox/
 cabal.sandbox.config
+*.cabal
 *.prof
 *.prof.html
 edg-prototype.svg
@@ -22,6 +23,7 @@ edg-prototype.*.svg
 *.aux
 *.hp
 .stack-work/
+dist-newstyle/
 
 ###############
 # OS-specific #
