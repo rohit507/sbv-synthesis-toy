@@ -13,6 +13,8 @@ We define a type that (when used with the 'Free' monad) gives us an AST for
 expressions over constraints of boolean variables, simple enumerables,
 and linear equations.
 
+You would edit this if you want to add operations or other fields to constraint
+expressions.
 -}
 
 module Types.CExpr where

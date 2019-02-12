@@ -11,7 +11,10 @@ Stability   : experimental
 Portability : POSIX
 
 These types let us represent different complex structures we are working with.
-|-}
+
+You would edit this to add other forms of stored data in a design, block, port,
+or link.
+-}
 
 module Types.Elements where
 
@@ -54,18 +57,30 @@ data Blob id n c = Blob {
      , constraints :: HashMap id c
      } deriving (Show, Read)
 
+-- * Block
+
+-- | A block in the block diagrams we create. They have their own internal
+--   variables and constraints but they also have ports which can connect to
+--   their counterparts on a link.
 data Block id n c = Block {
        variables   :: HashMap id n
      , constraints :: HashMap id c
      , ports       :: HashMap id (Port id n c)
      } deriving (Show,Read)
 
+-- | Functionally a link and a block are identical, but we use them to form a
+--   bipartite graph, with port equalities bridging the two sets.
+--
+--   Generally we say a link port is connected to a block port when every
+--   pair of corresponding sub-variables are equal.
 data Link id n c = Link {
        variables   :: HashMap id n
      , constraints :: HashMap id c
      , ports       :: HashMap id (Port id n c)
      } deriving (Show,Read)
 
+-- | A port, which can exist on both blocks and links. A connection between
+--   two ports implies that all their variables are equal.
 data Port id n c = Port {
        variables   :: HashMap id n
      , constraints :: HashMap id c
