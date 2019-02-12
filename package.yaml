@@ -13,38 +13,44 @@ extra-source-files:
   - README.md
 
 default-extensions:
-  - GADTs
-  - FlexibleContexts
-  - FlexibleInstances
-  - MultiParamTypeClasses
-  - DeriveDataTypeable
+  - ApplicativeDo
+  - ConstraintKinds
   - DeriveAnyClass
-  - DeriveGeneric
+  - DeriveDataTypeable
   - DeriveFunctor
+  - DeriveGeneric
   - DeriveTraversable
   - DuplicateRecordFields
-  - RecordWildCards
-  - NamedFieldPuns
-  - TypeApplications
-  - ApplicativeDo
-  - ViewPatterns
-  - TupleSections
-  - StandaloneDeriving
   - ExplicitForAll
-  - ScopedTypeVariables
-  - TemplateHaskell
+  - FlexibleContexts
+  - FlexibleInstances
   - FunctionalDependencies
+  - GADTs
+  - KindSignatures
+  - MultiParamTypeClasses
+  - NamedFieldPuns
+  - OverloadedLists
   - PatternGuards
   - RankNTypes
-  - KindSignatures
-  - ConstraintKinds
-  - OverloadedLists
+  - ScopedTypeVariables
+  - StandaloneDeriving
+  - TemplateHaskell
+  - TupleSections
+  - TypeApplications
+  - TypeFamilies
+  - ViewPatterns
 
 dependencies:
   - base >= 4.7 && < 5
   - recursion-schemes
+  - unordered-containers
+
+library:
+  source-dirs: lib
 
 executables:
-  synthesis-toy:
-    source-dirs:      src
+  edg-toy:
+    source-dirs:
+      - lib
+      - app
     main:             Main.hs
