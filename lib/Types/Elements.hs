@@ -13,7 +13,9 @@ Portability : POSIX
 These types let us represent different complex structures we are working with.
 
 You would edit this to add other forms of stored data in a design, block, port,
-or link.
+or link. Then you would go fiddle with 'Internal.EmbeddedDSL' so that
+you have some nicer constructs to use when you are encoding things for your
+parts libraries.
 -}
 
 module Types.Elements where
